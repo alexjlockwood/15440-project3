@@ -16,9 +16,9 @@ public class LoginTask extends AsyncTask<String, Void, String> {
   private static final boolean DEBUG = true;
 
   // Amount of time to wait for the server response
-  private int WAIT_FOR_RESPONSE = 3000;
-  // Retry the join 3 times before failing
-  private static final int NUM_RETRY = 3;
+  private int WAIT_FOR_RESPONSE = 1000;
+  // Retry the join 5 times before failing
+  private static final int NUM_RETRY = 5;
 
   private LoginCallback mCallback;
   private DatagramSocket mSocket;
@@ -33,11 +33,6 @@ public class LoginTask extends AsyncTask<String, Void, String> {
     String user = args[0];
     String host = args[1];
     int port = Integer.parseInt(args[2]);
-
-    if (DEBUG) {
-      Log.v(TAG, "Attempting to join! User: " + user + ", Host: " + host
-          + ", Port: " + port);
-    }
 
     try {
       // Sleep for a little bit just so it looks like we are doing
@@ -59,6 +54,11 @@ public class LoginTask extends AsyncTask<String, Void, String> {
       return null;
     }
 
+    if (DEBUG) {
+      Log.v(TAG, "Attempting to join! User: " + user + ", Host: " + host
+          + ", Port: " + port);
+    }
+
     byte[] msg = ("J," + user).getBytes();
     DatagramPacket sendPacket = new DatagramPacket(msg, msg.length,
         mServerAddr, port);
@@ -76,6 +76,10 @@ public class LoginTask extends AsyncTask<String, Void, String> {
 
     int numAttempts = 0;
     while (numAttempts++ < NUM_RETRY) {
+
+      if (DEBUG) {
+        Log.v(TAG, "Waiting for server's 'join response'.");
+      }
 
       try {
         mSocket.setSoTimeout(WAIT_FOR_RESPONSE);
@@ -108,7 +112,7 @@ public class LoginTask extends AsyncTask<String, Void, String> {
         try {
           // Resend the join request
           if (DEBUG)
-            Log.v(TAG, "Resending join request...");
+            Log.v(TAG, "Resending join request... (" + (numAttempts+1) + ")");
           mSocket.send(sendPacket);
         } catch (IOException ignore) {
           Log.e(TAG, "Could not send join request to server.");
@@ -117,7 +121,7 @@ public class LoginTask extends AsyncTask<String, Void, String> {
       }
 
       // Increase the time to wait by two seconds
-      WAIT_FOR_RESPONSE += 3000;
+      WAIT_FOR_RESPONSE += 2000;
     }
 
     close();
@@ -133,6 +137,9 @@ public class LoginTask extends AsyncTask<String, Void, String> {
 
   @Override
   protected void onPostExecute(String result) {
+    if (DEBUG) {
+      Log.v(TAG, "onPostExecute() called!");
+    }
     if (mCallback != null) {
       if (DEBUG) {
         if (result != null)
@@ -145,9 +152,12 @@ public class LoginTask extends AsyncTask<String, Void, String> {
   @Override
   protected void onCancelled() {
     if (DEBUG) {
-      Log.v(TAG, "The LoginTask was cancelled!");
+      Log.v(TAG, "onCancelled() called!");
     }
     if (mCallback != null) {
+      if (DEBUG) {
+        Log.v(TAG, "The LoginTask was cancelled!");
+      }
       mCallback.onLoginComplete(null);
     }
   }

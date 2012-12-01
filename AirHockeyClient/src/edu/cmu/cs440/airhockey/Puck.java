@@ -14,7 +14,7 @@ import android.util.Log;
  */
 public class Puck extends Shape {
 
-  private static final String TAG = "15440_Ball";
+  private static final String TAG = "15440_Puck";
   private static final boolean DEBUG = true;
 
   public static final float MIN_SPEED = 100f;
@@ -148,21 +148,17 @@ public class Puck extends Shape {
     if (region.isGoal()) {
       if (mX < region.getLeft()) {
         mX = region.getLeft();
-        // bounceOffRight();
-        // bounceOffLeft();
+        //bounceOffLeft();
       } else if (region.getRight() < mX) {
         mX = region.getRight();
-        // bounceOffLeft();
-        // bounceOffRight();
+        //bounceOffRight();
       }
       if (mY < region.getTop()) {
         mY = region.getTop();
-        // bounceOffBottom();
-        // bounceOffTop();
+        //bounceOffTop();
       } else if (region.getBottom() < mY) {
         mY = region.getBottom();
-        // bounceOffTop();
-        // bounceOffBottom();
+        //bounceOffBottom();
       }
     }
     mRegion = region;
@@ -181,23 +177,29 @@ public class Puck extends Shape {
       return;
     }
 
+    // Log.v(TAG, "Updating ball: " + toString());
+
     if (mRegion.isGoal()) {
       // bounce when at walls
       if (mX <= mRegion.getLeft() + mRadiusPixels) {
         // at left wall
         mX = mRegion.getLeft() + mRadiusPixels;
+        // Log.v(TAG, "bounce off left");
         bounceOffLeft();
       } else if (mY <= mRegion.getTop() + mRadiusPixels) {
         // at top wall
         mY = mRegion.getTop() + mRadiusPixels;
+        // Log.v(TAG, "bounce off top");
         bounceOffTop();
       } else if (mX >= mRegion.getRight() - mRadiusPixels) {
         // at right wall
         mX = mRegion.getRight() - mRadiusPixels;
+        // Log.v(TAG, "bounce off right");
         bounceOffRight();
       } else if (mY >= mRegion.getBottom() - mRadiusPixels) {
         // at bottom wall
         mY = mRegion.getBottom() - mRadiusPixels;
+        // Log.v(TAG, "bounce off bottom");
         bounceOffBottom();
       }
     } else {
@@ -356,7 +358,8 @@ public class Puck extends Shape {
         // throw new IllegalStateException("Y must be stet");
       }
       if (mAngle < 0) {
-        throw new IllegalStateException("angle must be set");
+        if (DEBUG) Log.v(TAG, "Adjusting angle from " + mAngle + " to " + mAngle + 2*Math.PI);
+        mAngle += 2*Math.PI;
       }
       if (mAngle > 2 * Math.PI) {
         throw new IllegalStateException("angle must be less that 2Pi");

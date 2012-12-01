@@ -6,15 +6,12 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * A ball region is a rectangular region that contains bouncing balls, and
- * possibly one animating line. In its {@link #update(long)} method, it will
- * update all of its balls, the moving line. It detects collisions between the
- * balls and the moving line, and when the line is complete, handles splitting
- * off a new region.
+ * A puck region is a rectangular region that contains bouncing pucks. In its
+ * {@link #update(long)} method, it will update all of its pucks.
  */
 public class PuckRegion extends Shape {
 
-  private static final String TAG = "15440_BallRegion";
+  private static final String TAG = "15440_PuckRegion";
   private static final boolean DEBUG = true;
 
   public static final int LEFT = 0;
@@ -26,7 +23,7 @@ public class PuckRegion extends Shape {
   private float mRight;
   private float mTop;
   private float mBottom;
-  protected List<Puck> mBalls;
+  protected List<Puck> mPucks;
   protected WeakReference<PuckEngine.BallEventCallBack> mCallback;
   private boolean mIsGoal;
 
@@ -44,17 +41,17 @@ public class PuckRegion extends Shape {
    * @param balls
    *          The balls of the region
    */
-  public PuckRegion(float left, float right, float top,
-      float bottom, ArrayList<Puck> balls, boolean isGoal) {
+  public PuckRegion(float left, float right, float top, float bottom,
+      ArrayList<Puck> pucks, boolean isGoal) {
     mLeft = left;
     mRight = right;
     mTop = top;
     mBottom = bottom;
-    mBalls = balls;
+    mPucks = pucks;
     mIsGoal = isGoal;
 
-    for (int i = 0; i < mBalls.size(); i++) {
-      final Puck ball = mBalls.get(i);
+    for (int i = 0; i < mPucks.size(); i++) {
+      final Puck ball = mPucks.get(i);
       ball.setRegion(this);
     }
   }
@@ -95,14 +92,14 @@ public class PuckRegion extends Shape {
    * Returns a list of all balls in this region.
    */
   public List<Puck> getBalls() {
-    return mBalls;
+    return mPucks;
   }
 
   /**
    * Adds a ball to the region.
    */
   public void addBall(Puck ball) {
-    mBalls.add(ball);
+    mPucks.add(ball);
   }
 
   /**
@@ -110,8 +107,8 @@ public class PuckRegion extends Shape {
    * paused state. Called by the {@link PuckEngine}.
    */
   public void setNow(long now) {
-    for (int i = 0; i < mBalls.size(); i++) {
-      mBalls.get(i).setNow(now);
+    for (int i = 0; i < mPucks.size(); i++) {
+      mPucks.get(i).setNow(now);
     }
   }
 
@@ -124,26 +121,26 @@ public class PuckRegion extends Shape {
    *         finished.
    */
   public void update(long now) {
-    Iterator<Puck> iter = mBalls.iterator();
+    Iterator<Puck> iter = mPucks.iterator();
     while (iter.hasNext()) {
       Puck ball = iter.next();
       ball.update(now);
       int exitEdge = ball.hasExited();
       if (exitEdge >= 0) {
-        //if (!movingAwayFromWall(ball, exitEdge)) {
-          // The ball has exited the region. Remove it from the region's
-          // list of balls.
-          mCallback.get().onBallExitsRegion(now, ball, exitEdge);
-          iter.remove();
-        //}
+        // if (!movingAwayFromWall(ball, exitEdge)) {
+        // The ball has exited the region. Remove it from the region's
+        // list of balls.
+        mCallback.get().onBallExitsRegion(now, ball, exitEdge);
+        iter.remove();
+        // }
       }
     }
 
     // Update ball to ball collisions
-    for (int i = 0; i < mBalls.size(); i++) {
-      final Puck ball = mBalls.get(i);
-      for (int j = i + 1; j < mBalls.size(); j++) {
-        Puck other = mBalls.get(j);
+    for (int i = 0; i < mPucks.size(); i++) {
+      final Puck ball = mPucks.get(i);
+      for (int j = i + 1; j < mPucks.size(); j++) {
+        Puck other = mPucks.get(j);
         if (ball.isCircleOverlapping(other)) {
           Puck.adjustForCollision(ball, other);
           // Notify the BallEngine that a collision has occurred

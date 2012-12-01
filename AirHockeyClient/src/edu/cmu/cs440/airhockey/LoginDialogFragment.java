@@ -34,7 +34,7 @@ public class LoginDialogFragment extends DialogFragment implements
   @Override
   public View onCreateView(LayoutInflater inflater, ViewGroup container,
       Bundle savedInstanceState) {
-    getDialog().setTitle(R.string.app_name);
+    getDialog().setTitle("Login");
     getDialog().setCanceledOnTouchOutside(false);
 
     View v = inflater.inflate(R.layout.login_dialog, container, false);

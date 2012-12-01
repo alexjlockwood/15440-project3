@@ -15,7 +15,6 @@ import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.Window;
 import android.widget.Toast;
-import edu.cmu.cs440.airhockey.AirHockeyView.Mode;
 import edu.cmu.cs440.airhockey.LoginDialogFragment.NewGameCallback;
 import edu.cmu.cs440.airhockey.LoginTask.LoginCallback;
 
@@ -65,7 +64,6 @@ public class AirHockeyActivity extends FragmentActivity implements
     mBallsView.setCallback(this);
 
     mState = STATE_NONE;
-
     mVibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
   }
 
@@ -87,18 +85,7 @@ public class AirHockeyActivity extends FragmentActivity implements
   @Override
   protected void onPause() {
     super.onPause();
-    mBallsView.setMode(AirHockeyView.Mode.PausedByUser);
-  }
-
-  @Override
-  public void onBackPressed() {
-    if (mBallsView.getMode() == Mode.PausedByUser) {
-      super.onBackPressed();
-    } else if (mBallsView.getMode() == Mode.Bouncing) {
-      mBallsView.setMode(Mode.PausedByUser);
-      Toast.makeText(this, R.string.press_back_to_exit_warning,
-          Toast.LENGTH_SHORT).show();
-    }
+    // mBallsView.setMode(AirHockeyView.Mode.PausedByUser);
   }
 
   @Override
@@ -194,18 +181,13 @@ public class AirHockeyActivity extends FragmentActivity implements
     mDialog.dismiss();
   }
 
-  private void onConnectionLost() {
-    Toast.makeText(this, "Connection lost.", Toast.LENGTH_SHORT).show();
-    resetGame();
-  }
-
   private void resetGame() {
     if (DEBUG)
       Log.v(TAG, "Client game has ended...");
     mBallsView.getEngine().reset(SystemClock.elapsedRealtime(),
         PREVIEW_NUM_BALLS);
     mBallsView.setMode(AirHockeyView.Mode.Bouncing);
-    if (mProgress != null && mProgress.isShowing()) {
+    if (mProgress != null) {
       mProgress.dismiss();
     }
     showLoginDialog();
@@ -251,6 +233,8 @@ public class AirHockeyActivity extends FragmentActivity implements
     public void handleMessage(Message msg) {
       switch (msg.what) {
         case MESSAGE_READ:
+          if (DEBUG)
+            Log.v(TAG, "MESSAGE_READ received.");
           switch (msg.arg1) {
             case NetworkThread.IP:
               Puck incomingBall = (Puck) msg.obj;
@@ -271,17 +255,39 @@ public class AirHockeyActivity extends FragmentActivity implements
         case MESSAGE_WRITE:
           break;
         case STATE_NONE:
+          if (DEBUG)
+            Log.v(TAG, "STATE_NONE received.");
           mState = STATE_NONE;
-          onConnectionLost();
+          Toast.makeText(AirHockeyActivity.this, "Connection lost.",
+              Toast.LENGTH_SHORT).show();
+          resetGame();
           break;
         case STATE_CONNECTED:
+          if (DEBUG)
+            Log.v(TAG, "STATE_CONNECTED received.");
           mState = STATE_CONNECTED;
           startGame();
           break;
         case MESSAGE_TOAST:
-          //mVibrator.vibrate(50l);
+          if (DEBUG)
+            Log.v(TAG, "STATE_TOAST received.");
+          // mVibrator.vibrate(50l);
           break;
       }
     }
   };
+
+  private static final int BACK_EXIT_WAIT = 2000;
+  private long mLastBackPress = -1;
+
+  @Override
+  public void onBackPressed() {
+    if (SystemClock.elapsedRealtime() - mLastBackPress < BACK_EXIT_WAIT) {
+      super.onBackPressed();
+    } else {
+      mLastBackPress = SystemClock.elapsedRealtime();
+      Toast.makeText(this, R.string.press_back_to_exit_warning,
+          Toast.LENGTH_SHORT).show();
+    }
+  }
 }

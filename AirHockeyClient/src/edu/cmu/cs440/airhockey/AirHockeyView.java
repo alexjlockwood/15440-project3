@@ -1,5 +1,6 @@
 package edu.cmu.cs440.airhockey;
 
+import java.util.Iterator;
 import java.util.List;
 
 import android.content.Context;
@@ -37,10 +38,10 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
   private PuckEngine mEngine;
   private Mode mMode = Mode.Paused;
 
+  private Bitmap mBall48;
   private Bitmap mBall24;
-  private Bitmap mBall16;
+  private float mBallRadius48;
   private float mBallRadius24;
-  private float mBallRadius16;
 
   // The ball currently held by the user
   private Puck mPressedBall;
@@ -64,10 +65,10 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
 
     // retrieve and decode bitmaps
     Resources res = context.getResources();
-    mBall24 = BitmapFactory.decodeResource(res, R.drawable.blue_ball_48);
-    mBall16 = BitmapFactory.decodeResource(res, R.drawable.blue_ball_16);
+    mBall48 = BitmapFactory.decodeResource(res, R.drawable.blue_ball_48);
+    mBall24 = BitmapFactory.decodeResource(res, R.drawable.blue_ball_24);
+    mBallRadius48 = ((float) mBall48.getWidth()) / 2f;
     mBallRadius24 = ((float) mBall24.getWidth()) / 2f;
-    mBallRadius16 = ((float) mBall16.getWidth()) / 2f;
   }
 
   /**
@@ -88,7 +89,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
     int minY = BORDER_WIDTH;
     int maxY = getHeight() - BORDER_WIDTH;
 
-    mEngine = new PuckEngine(minX, maxX, minY, maxY, mBallRadius24);
+    mEngine = new PuckEngine(minX, maxX, minY, maxY, mBallRadius48);
     mEngine.setCallBack(this);
 
     // note: this should never be null
@@ -140,7 +141,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
 
     switch (motionEvent.getAction()) {
       case MotionEvent.ACTION_DOWN:
-        Puck ball = getBallInBounds(x, y);
+        Puck ball = removePuckInBounds(x, y);
         if (ball != null) {
           mPressedBall = ball;
           mPressedBall.setCoords(x, y);
@@ -164,9 +165,24 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
         if (mPressedBall != null) {
           double dx = x - mLastPressedX;
           double dy = y - mLastPressedY;
-          double angle = (Math.atan2(dy, dx) + 2 * Math.PI) % (2 * Math.PI);
-          mPressedBall.setDirection(angle);
+          mPressedBall.setDirection(Math.atan2(dy, dx));
           mPressedBall.setCoords(x, y);
+          PuckRegion region = mEngine.getRegion();
+          PuckRegion goalRegion = mEngine.getGoalRegion();
+          if (goalRegion.isPointWithin(x, y)) {
+            goalRegion.addBall(mPressedBall);
+            mPressedBall.setRegion(goalRegion);
+            mPressedBall.setRadiusPixels(mBallRadius24);
+
+            // TODO: notify that a goal was scored? Can a player manipulate this
+            // and simply drag all balls into their goal to prevent others from
+            // scoring??
+            onGoalScored(now, mPressedBall);
+          } else {
+            region.addBall(mPressedBall);
+            mPressedBall.setRegion(region);
+            mPressedBall.setRadiusPixels(mBallRadius48);
+          }
           mPressedBall.setPressed(false);
           mPressedBall.setPixelsPerSecond(Puck.MAX_SPEED);
           mPressedBall.setNow(now);
@@ -178,21 +194,38 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
     return super.onTouchEvent(motionEvent);
   }
 
-  private Puck getBallInBounds(float x, float y) {
+  private Puck removePuckInBounds(float x, float y) {
     // Make it a little easier for the user to catch the ball.
-    final double radiusBounds = 2.0 * mBallRadius24;
+    final double radiusBounds48 = 2.0 * mBallRadius48;
 
     List<Puck> regionBalls = mEngine.getRegion().getBalls();
-    for (int i = 0; i < regionBalls.size(); i++) {
-      // Calculate the distance from (x,y) to the ball's origin
-      final Puck ball = regionBalls.get(i);
-      double distance = getDistance(ball.getX(), ball.getY(), x, y);
-      if (distance <= radiusBounds) {
+    Iterator<Puck> regionIter = regionBalls.iterator();
+    while (regionIter.hasNext()) {
+      // Calculate the distance from (x,y) to the puck's origin
+      final Puck puck = regionIter.next();
+      double distance = getDistance(puck.getX(), puck.getY(), x, y);
+      if (distance <= radiusBounds48) {
         // Then the ball is in bounds
-        return ball;
+        regionIter.remove();
+        return puck;
       }
     }
-    // No ball in the given bounds
+
+    final double radiusBounds24 = 2.5 * mBallRadius24;
+    List<Puck> goalBalls = mEngine.getGoalRegion().getBalls();
+    Iterator<Puck> goalIter = goalBalls.iterator();
+    while (goalIter.hasNext()) {
+      // Calculate the distance from (x,y) to the puck's origin
+      final Puck puck = goalIter.next();
+      double distance = getDistance(puck.getX(), puck.getY(), x, y);
+      if (distance <= radiusBounds24) {
+        // Then the puck is in bounds
+        goalIter.remove();
+        return puck;
+      }
+    }
+
+    // No puck in the given bounds
     return null;
   }
 
@@ -217,6 +250,10 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
     drawRegion(canvas, region);
     drawGoal(canvas, goal);
     drawBalls(canvas, region, goal);
+    if (mPressedBall != null) {
+      canvas.drawBitmap(mBall48, mPressedBall.getX() - mBallRadius48,
+          mPressedBall.getY() - mBallRadius48, mPaint);
+    }
 
     if (mMode == Mode.PausedByUser) {
       drawPausedText(canvas);
@@ -286,15 +323,15 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
     List<Puck> regionBalls = region.getBalls();
     for (int i = 0; i < regionBalls.size(); i++) {
       final Puck ball = regionBalls.get(i);
-      canvas.drawBitmap(mBall24, ball.getX() - mBallRadius24, ball.getY()
-          - mBallRadius24, mPaint);
+      canvas.drawBitmap(mBall48, ball.getX() - mBallRadius48, ball.getY()
+          - mBallRadius48, mPaint);
     }
 
     List<Puck> goalBalls = goal.getBalls();
     for (int i = 0; i < goalBalls.size(); i++) {
       final Puck ball = goalBalls.get(i);
-      canvas.drawBitmap(mBall16, ball.getX() - mBallRadius16, ball.getY()
-          - mBallRadius16, mPaint);
+      canvas.drawBitmap(mBall24, ball.getX() - mBallRadius24, ball.getY()
+          - mBallRadius24, mPaint);
     }
     mPaint.setAntiAlias(true);
   }
@@ -302,6 +339,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
   /** {@inheritDoc} */
   @Override
   public void onBallHitsBall(Puck b1, Puck b2) {
+    // Don't need this after all :)
   }
 
   /** {@inheritDoc} */
@@ -315,7 +353,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
   public void onGoalScored(long when, Puck ball) {
     if (DEBUG)
       Log.v(TAG, "A ball has entered the goal region: " + ball.toString());
-    ball.setRadiusPixels(mBallRadius16);
+    ball.setRadiusPixels(mBallRadius24);
   }
 
   /**
@@ -361,27 +399,27 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
     float x, y;
     double angle;
     float pps = BALL_START_SPEED;
-    float radius = mBallRadius24;
+    float radius = mBallRadius48;
 
     int edge = (int) (Math.random() * 4);
     switch (edge) {
       case PuckRegion.LEFT: // 0
-        x = -mBallRadius24 + 1;
+        x = -mBallRadius48 + 1;
         y = (float) (getHeight() / 2);
         angle = 0;
         break;
       case PuckRegion.TOP: // 1
         x = (float) (getWidth() / 2);
-        y = -mBallRadius24 + 1;
+        y = -mBallRadius48 + 1;
         angle = 1.5 * Math.PI;
         break;
       case PuckRegion.BOTTOM: // 2
         x = (float) (getWidth() / 2);
-        y = getHeight() + mBallRadius24 - 1;
+        y = getHeight() + mBallRadius48 - 1;
         angle = 0.5 * Math.PI;
         break;
       default: // 3
-        x = getWidth() + mBallRadius24 - 1;
+        x = getWidth() + mBallRadius48 - 1;
         y = (float) (getHeight() / 2);
         angle = Math.PI;
         break;

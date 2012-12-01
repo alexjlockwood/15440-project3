@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 /**
- * Keeps track of the current state of balls bouncing around within a a set of
+ * Keeps track of the current state of pucks bouncing around within a a set of
  * regions.
  *
  * Note: 'now' is the elapsed time in milliseconds since some consistent point
@@ -14,7 +14,7 @@ import java.util.Iterator;
  */
 public class PuckEngine {
 
-  private static final String TAG = "15440_BallEngine";
+  private static final String TAG = "15440_PuckEngine";
   private static final boolean DEBUG = true;
 
   /**
@@ -45,8 +45,8 @@ public class PuckEngine {
 
     final float regionWidth = maxX - minX;
     final float regionHeight = maxY - minY;
-    final float goalWidth = regionWidth / 4;
-    final float goalHeight = regionHeight / 4;
+    final float goalWidth = regionWidth / 6;
+    final float goalHeight = regionHeight / 6;
 
     mGoalMinX = minX + (regionWidth / 2) - (goalWidth / 2);
     mGoalMaxX = maxX - (regionWidth / 2) + (goalWidth / 2);
@@ -97,7 +97,7 @@ public class PuckEngine {
       final Puck ball = it.next();
       if (!ball.isPressed()) {
         // Don't update the ball's timestamp if it is being held.
-        if (isBallInGoalRegion(ball)) {
+        if (mGoalRegion.isPointWithin(ball.getX(), ball.getY())) {
           // Then an outer region ball has entered the goal region.
           it.remove();
           mGoalRegion.addBall(ball);
@@ -109,14 +109,6 @@ public class PuckEngine {
     }
     mRegion.update(now);
     mGoalRegion.update(now);
-  }
-
-  /**
-   * Returns true if the given ball is in the goal region's bounds.
-   */
-  private boolean isBallInGoalRegion(Puck ball) {
-    float bx = ball.getX(), by = ball.getY();
-    return mGoalMinX < bx && bx < mGoalMaxX && mGoalMinY < by && by < mGoalMaxY;
   }
 
   /**
