@@ -12,7 +12,7 @@ import android.util.Log;
 
 public class NetworkThread extends Thread {
 
-  private static final String TAG = "AirHockeyTag";
+  private static final String TAG = "15440_NetworkThread";
   private static final boolean DEBUG = true;
 
   public static final int IP = 0;
@@ -21,7 +21,7 @@ public class NetworkThread extends Thread {
   public static final int POK = 3;
   public static final int PNO = 4;
 
-  private BallRegion mRegion;
+  private PuckRegion mRegion;
   private Handler mHandler;
   private DatagramSocket mSocket;
   private InetAddress mServerAddr;
@@ -29,7 +29,7 @@ public class NetworkThread extends Thread {
   private int mPort;
   private String mUser;
 
-  public NetworkThread(BallRegion region, Handler handler, String hostname,
+  public NetworkThread(PuckRegion region, Handler handler, String hostname,
       String port, String user) {
     mRegion = region;
     mHandler = handler;
@@ -47,12 +47,10 @@ public class NetworkThread extends Thread {
       mServerAddr = InetAddress.getByName(mHostname);
       mSocket = new DatagramSocket(mPort);
     } catch (UnknownHostException e) {
-      // Could not connect
       Log.e(TAG, "Could not resolve hostname: " + mHostname);
       close();
       return;
     } catch (SocketException e) {
-      // Could not connect
       Log.e(TAG, "Socket exception during login");
       close();
       return;
@@ -73,14 +71,18 @@ public class NetworkThread extends Thread {
     while (true) {
       DatagramPacket packet = new DatagramPacket(buf, buf.length);
       try {
+        if (DEBUG) {
+          Log.v(TAG, "Waiting for server's next incoming message...");
+        }
         mSocket.receive(packet);
         byte[] bytes = packet.getData();
         int offset = packet.getOffset();
         int length = packet.getLength();
         String readMsg = new String(bytes, offset, length);
 
-        if (DEBUG)
+        if (DEBUG) {
           Log.v(TAG, "Message received in NetworkThread: " + readMsg);
+        }
 
         // Data to pass to the handler
         Object msg;
@@ -91,7 +93,6 @@ public class NetworkThread extends Thread {
         String msgType = fields[0];
 
         if (msgType.equals("IP")) {
-
           // fields: "IP,puckId,inEdge,args"
           // args: "xEntryPercent;yEntryPercent;angle;pps;radius"
           arg1 = IP;
@@ -103,36 +104,48 @@ public class NetworkThread extends Thread {
           double angle = Double.parseDouble(args[2]);
           float pps = Float.parseFloat(args[3]);
           float radius = Float.parseFloat(args[4]);
-          msg = IOUtils.toBall(mRegion, puckId, inEdge, xEntryPercent,
+          msg = Utils.toBall(mRegion, puckId, inEdge, xEntryPercent,
               yEntryPercent, angle, pps, radius);
+
+          // mHandler.obtainMessage(AirHockeyActivity.MESSAGE_TOAST).sendToTarget();
+          // Message message =
+          // mHandler.obtainMessage(AirHockeyActivity.MESSAGE_READ, arg1, -1,
+          // msg);
+          // mHandler.sendMessageDelayed(message, 1000);
+
+          mHandler.obtainMessage(AirHockeyActivity.MESSAGE_READ, arg1, -1, msg)
+              .sendToTarget();
+
         } else if (msgType.equals("XOK")) {
           // "XOK,puckId"
           arg1 = XOK;
           msg = Integer.parseInt(fields[1]);
           // Do stuff
+          mHandler.obtainMessage(AirHockeyActivity.MESSAGE_READ, arg1, -1, msg)
+              .sendToTarget();
         } else if (msgType.equals("XNO")) {
           // "XNO,puckId"
           arg1 = XNO;
           msg = Integer.parseInt(fields[1]);
-          // TODO: do stuff!!!!!!!!!!!!!!!!!!!!!!!!!!
+          mHandler.obtainMessage(AirHockeyActivity.MESSAGE_READ, arg1, -1, msg)
+              .sendToTarget();
         } else if (msgType.equals("POK")) {
           // "POK,puckId"
           arg1 = POK;
           msg = Integer.parseInt(fields[1]);
-          // Do stuff
+          mHandler.obtainMessage(AirHockeyActivity.MESSAGE_READ, arg1, -1, msg)
+              .sendToTarget();
         } else if (msgType.equals("PNO")) {
           // "PNO"
           arg1 = PNO;
           msg = null;
-          // TODO: do stuff!!!!!!!!!!!!!!!!!!!!!!!!!!
+          mHandler.obtainMessage(AirHockeyActivity.MESSAGE_READ, arg1, -1, msg)
+              .sendToTarget();
         } else {
           // Shouldn't happen
           arg1 = -1;
           msg = null;
         }
-
-        mHandler.obtainMessage(AirHockeyActivity.MESSAGE_READ, arg1, -1, msg)
-            .sendToTarget();
       } catch (IOException e) {
         Log.e(TAG, "Client failed to read from server!");
         close();
@@ -149,7 +162,6 @@ public class NetworkThread extends Thread {
     } catch (IOException e) {
       Log.e(TAG, "Client failed to write message: "
           + new String(buf, 0, buf.length));
-      close();
     }
   }
 

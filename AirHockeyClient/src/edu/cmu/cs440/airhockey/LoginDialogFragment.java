@@ -17,7 +17,7 @@ import android.widget.Toast;
 public class LoginDialogFragment extends DialogFragment implements
     View.OnClickListener {
 
-  private static final String TAG = "LoginDialogFragment";
+  private static final String TAG = "15440_LoginDialogFragment";
   private static final boolean DEBUG = true;
 
   private Activity mActivity;

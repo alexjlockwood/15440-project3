@@ -4,10 +4,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
+import android.os.Vibrator;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.Window;
@@ -23,12 +26,16 @@ import edu.cmu.cs440.airhockey.LoginTask.LoginCallback;
 public class AirHockeyActivity extends FragmentActivity implements
     AirHockeyView.BallEngineCallBack, NewGameCallback, LoginCallback {
 
-  private static final String TAG = "AirHockeyTag";
+  private static final String TAG = "15440_AirHockeyActivity";
   private static final boolean DEBUG = true;
 
   private static final int PREVIEW_NUM_BALLS = 0;
   private static final int NEW_GAME_NUM_BALLS = 0;
+  private static final int COLLISION_VIBRATE_MILLIS = 50;
+
   private AirHockeyView mBallsView;
+
+  private Vibrator mVibrator;
 
   private LoginDialogFragment mDialog;
   private ProgressDialog mProgress;
@@ -56,12 +63,15 @@ public class AirHockeyActivity extends FragmentActivity implements
     setContentView(R.layout.main);
     mBallsView = (AirHockeyView) findViewById(R.id.ballsView);
     mBallsView.setCallback(this);
+
     mState = STATE_NONE;
+
+    mVibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
   }
 
   /** {@inheritDoc} */
   @Override
-  public void onEngineReady(BallEngine ballEngine) {
+  public void onEngineReady(PuckEngine ballEngine) {
     // display 10 balls bouncing around for visual effect
     ballEngine.reset(SystemClock.elapsedRealtime(), PREVIEW_NUM_BALLS);
     mBallsView.setMode(AirHockeyView.Mode.Bouncing);
@@ -112,12 +122,27 @@ public class AirHockeyActivity extends FragmentActivity implements
   /** {@inheritDoc} */
   @Override
   public void onNewGame(String user, String host, String port) {
-    mUser = user;
-    mHost = host;
-    mPort = port;
-    mProgress = ProgressDialog.show(this, "", "Connecting...", true);
-    mLoginTask = new LoginTask(this);
-    mLoginTask.execute(mUser, mHost, mPort);
+    if (Utils.isOnline(this)) {
+      mUser = user;
+      mHost = host;
+      mPort = port;
+      mProgress = ProgressDialog.show(this, "", "Connecting...", true);
+      mProgress.setOnCancelListener(new DialogInterface.OnCancelListener() {
+        @Override
+        public void onCancel(DialogInterface dialog) {
+          if (mLoginTask != null) {
+            mLoginTask.cancel(true);
+          }
+        }
+      });
+      mProgress.setCanceledOnTouchOutside(false);
+      mProgress.setCancelable(true);
+      mLoginTask = new LoginTask(this);
+      mLoginTask.execute(mUser, mHost, mPort);
+    } else {
+      Toast.makeText(this, "No internet connection found.", Toast.LENGTH_SHORT)
+          .show();
+    }
   }
 
   @Override
@@ -152,7 +177,8 @@ public class AirHockeyActivity extends FragmentActivity implements
       if (DEBUG)
         Log.v(TAG, "Client joined successfully!");
       mProgress.setMessage("Setting up game environment...");
-      BallRegion region = mBallsView.getEngine().getRegion();
+      mProgress.setCancelable(false);
+      PuckRegion region = mBallsView.getEngine().getRegion();
       mNetworkThread = new NetworkThread(region, mHandler, mHost, mPort, mUser);
       mNetworkThread.start();
     }
@@ -186,24 +212,24 @@ public class AirHockeyActivity extends FragmentActivity implements
   }
 
   @Override
-  public void onBallExitsRegion(long when, final Ball ball, final int exitEdge) {
+  public void onBallExitsRegion(long when, final Puck ball, final int exitEdge) {
     if (DEBUG) {
       final String edge;
-      if (exitEdge == BallRegion.BOTTOM)
+      if (exitEdge == PuckRegion.BOTTOM)
         edge = "bottom";
-      else if (exitEdge == BallRegion.TOP)
+      else if (exitEdge == PuckRegion.TOP)
         edge = "top";
-      else if (exitEdge == BallRegion.LEFT)
+      else if (exitEdge == PuckRegion.LEFT)
         edge = "left";
-      else if (exitEdge == BallRegion.RIGHT)
+      else if (exitEdge == PuckRegion.RIGHT)
         edge = "right";
       else
         edge = "UNDEFINED!";
       Log.v(TAG, "Ball (" + ball.toString() + " has left region (" + edge + ")");
     }
     if (mNetworkThread != null) {
-      final BallRegion region = mBallsView.getEngine().getRegion();
-      final byte[] data = IOUtils.toBytes(region, ball, exitEdge);
+      final PuckRegion region = mBallsView.getEngine().getRegion();
+      final byte[] data = Utils.toBytes(region, ball, exitEdge);
       mExecutor.execute(new Runnable() {
         @Override
         public void run() {
@@ -227,12 +253,13 @@ public class AirHockeyActivity extends FragmentActivity implements
         case MESSAGE_READ:
           switch (msg.arg1) {
             case NetworkThread.IP:
-              Ball incomingBall = (Ball) msg.obj;
+              Puck incomingBall = (Puck) msg.obj;
               incomingBall.setRegion(mBallsView.getEngine().getRegion());
+              incomingBall.setNow(SystemClock.elapsedRealtime());
               mBallsView.getEngine().addIncomingPuck(incomingBall);
               break;
             case NetworkThread.POK:
-              Ball newBall = mBallsView.randomIncomingPuck((Integer) msg.obj);
+              Puck newBall = mBallsView.randomIncomingPuck((Integer) msg.obj);
               newBall.setRegion(mBallsView.getEngine().getRegion());
               mBallsView.getEngine().addIncomingPuck(newBall);
               if (DEBUG) {
@@ -252,6 +279,7 @@ public class AirHockeyActivity extends FragmentActivity implements
           startGame();
           break;
         case MESSAGE_TOAST:
+          //mVibrator.vibrate(50l);
           break;
       }
     }

@@ -12,16 +12,15 @@ import android.util.Log;
 
 public class LoginTask extends AsyncTask<String, Void, String> {
 
-  private static final String TAG = "AirHockeyTag";
+  private static final String TAG = "15440_LoginTask";
   private static final boolean DEBUG = true;
 
   // Amount of time to wait for the server response
-  private static final int WAIT_FOR_RESPONSE = 10000;
-  // Retry the join 5 times before failing
-  private static final int NUM_RETRY = 5;
+  private int WAIT_FOR_RESPONSE = 3000;
+  // Retry the join 3 times before failing
+  private static final int NUM_RETRY = 3;
 
   private LoginCallback mCallback;
-
   private DatagramSocket mSocket;
   private InetAddress mServerAddr;
 
@@ -41,70 +40,94 @@ public class LoginTask extends AsyncTask<String, Void, String> {
     }
 
     try {
+      // Sleep for a little bit just so it looks like we are doing
+      // some work. :)
+      Thread.sleep(500);
+    } catch (InterruptedException e) {
+    }
+
+    try {
+      mSocket = new DatagramSocket(port);
+      mServerAddr = InetAddress.getByName(host);
+    } catch (SocketException e) {
+      Log.e(TAG, "Socket exception during login");
+      close();
+      return null;
+    } catch (UnknownHostException e) {
+      Log.e(TAG, "Could not resolve hostname: " + host);
+      close();
+      return null;
+    }
+
+    byte[] msg = ("J," + user).getBytes();
+    DatagramPacket sendPacket = new DatagramPacket(msg, msg.length,
+        mServerAddr, port);
+
+    try {
+      mSocket.send(sendPacket);
+    } catch (IOException e) {
+      Log.e(TAG, "Could not send join request to server.");
+      close();
+      return null;
+    }
+
+    DatagramPacket receivePacket;
+    byte[] buf = new byte[64];
+
+    int numAttempts = 0;
+    while (numAttempts++ < NUM_RETRY) {
+
       try {
-        mSocket = new DatagramSocket(port);
-        mServerAddr = InetAddress.getByName(host);
+        mSocket.setSoTimeout(WAIT_FOR_RESPONSE);
       } catch (SocketException e) {
-        // Could not connect
         Log.e(TAG, "Socket exception during login");
-        return null;
-      } catch (UnknownHostException e) {
-        // Could not connect
-        Log.e(TAG, "Could not resolve hostname: " + host);
-        return null;
+        break;
       }
-
-      byte[] msg = ("J," + user).getBytes();
-      DatagramPacket sendPacket = new DatagramPacket(msg, msg.length,
-          mServerAddr, port);
 
       try {
-        mSocket.send(sendPacket);
+        receivePacket = new DatagramPacket(buf, buf.length);
+
+        if (isCancelled())
+          break;
+
+        mSocket.receive(receivePacket);
+
+        if (isCancelled())
+          break;
+
+        close();
+        byte[] data = receivePacket.getData();
+        int offset = receivePacket.getOffset();
+        int length = receivePacket.getLength();
+        return new String(data, offset, length);
+
       } catch (IOException e) {
-        // Could not connect
-        Log.e(TAG, "Could not send join request to server.");
-        return null;
-      }
+        if (isCancelled())
+          break;
 
-      DatagramPacket receivePacket;
-      byte[] buf = new byte[64];
-
-      int numAttempts = 0;
-      while (true) {
         try {
-          mSocket.setSoTimeout(WAIT_FOR_RESPONSE);
-          receivePacket = new DatagramPacket(buf, buf.length);
-          mSocket.receive(receivePacket);
-          byte[] data = receivePacket.getData();
-          int offset = receivePacket.getOffset();
-          int length = receivePacket.getLength();
-          return new String(data, offset, length);
-        } catch (SocketException e) {
-          // Could not connect
-          Log.e(TAG, "Socket exception during login");
-          return null;
-        } catch (IOException e) {
           // Resend the join request
-          try {
-            mSocket.send(sendPacket);
-          } catch (IOException ignore) {
-            Log.e(TAG, "Could not send join request to server.");
-          }
-          if (++numAttempts > NUM_RETRY) {
-            // Timed out waiting on the server
-            Log.v(TAG, "Client timed out waiting for the server's response.");
-            return null;
-          }
-          if (DEBUG) {
-            Log.v(TAG, "Server failed to respond. Resending join request...");
-          }
+          if (DEBUG)
+            Log.v(TAG, "Resending join request...");
+          mSocket.send(sendPacket);
+        } catch (IOException ignore) {
+          Log.e(TAG, "Could not send join request to server.");
+          break;
         }
       }
-    } finally {
-      if (mSocket != null) {
-        mSocket.close();
-        mSocket = null;
-      }
+
+      // Increase the time to wait by two seconds
+      WAIT_FOR_RESPONSE += 3000;
+    }
+
+    close();
+    return null;
+  }
+
+  private void close() {
+    if (mSocket != null) {
+      mSocket.close();
+      mSocket = null;
     }
   }
 
@@ -112,9 +135,20 @@ public class LoginTask extends AsyncTask<String, Void, String> {
   protected void onPostExecute(String result) {
     if (mCallback != null) {
       if (DEBUG) {
-        Log.v(TAG, "Received server response: " + result);
+        if (result != null)
+          Log.v(TAG, "Received server response: " + result);
       }
       mCallback.onLoginComplete(result);
+    }
+  }
+
+  @Override
+  protected void onCancelled() {
+    if (DEBUG) {
+      Log.v(TAG, "The LoginTask was cancelled!");
+    }
+    if (mCallback != null) {
+      mCallback.onLoginComplete(null);
     }
   }
 
