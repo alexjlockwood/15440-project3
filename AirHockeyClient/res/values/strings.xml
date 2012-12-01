@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <string name="app_name">Air Hockey</string>
+    <string name="username">Username</string>
+    <string name="hostname">Hostname</string>
+    <string name="port">Port</string>
+    <string name="connect">Connect</string>
+    <string name="unpause_instructions">Touch to unpause</string>
+    <string name="press_back_to_exit_warning">Press again to exit!</string>
+
+</resources>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="bottom"
+    android:orientation="vertical"
+    android:padding="5dp" >
+
+    <EditText
+        android:id="@+id/username"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:hint="@string/username"
+        android:inputType="textUri"
+        android:padding="10dp" />
+    
+    <EditText
+        android:id="@+id/hostname"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:hint="@string/hostname"
+        android:inputType="textUri"
+        android:padding="10dp" />
+
+    <EditText
+        android:id="@+id/port"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:hint="@string/port"
+        android:inputType="number"
+        android:padding="10dp" />
+
+    <Button
+        android:id="@+id/connect"
+        android:layout_width="wrap_content"
+        android:layout_height="0dip"
+        android:layout_weight="50"
+        android:text="@string/connect"
+        android:textAppearance="?android:attr/textAppearanceSmall" 
+        android:layout_gravity="center_horizontal"/>
+
+</LinearLayout>
