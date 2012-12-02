@@ -68,7 +68,7 @@ public class NetworkThread extends Thread {
 
     // Loop forever, read new messages from the network, and forward them to
     // the Activity.
-    byte[] buf = new byte[128];
+    byte[] buf = new byte[256];
     while (true) {
       DatagramPacket packet = new DatagramPacket(buf, buf.length);
       try {

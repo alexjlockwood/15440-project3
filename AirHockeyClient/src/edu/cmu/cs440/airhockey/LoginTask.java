@@ -7,6 +7,9 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -20,12 +23,29 @@ public class LoginTask extends AsyncTask<String, Void, String> {
   // Retry the join 5 times before failing
   private static final int NUM_RETRY = 5;
 
+  private Context mCtx;
   private LoginCallback mCallback;
   private DatagramSocket mSocket;
   private InetAddress mServerAddr;
+  private ProgressDialog mProgress;
 
-  public LoginTask(LoginCallback callback) {
+  public LoginTask(Context ctx, LoginCallback callback) {
+    mCtx = ctx;
     mCallback = callback;
+  }
+
+  @Override
+  protected void onPreExecute() {
+    mProgress = ProgressDialog.show(mCtx, "", "Connecting...", true);
+    mProgress.setOnCancelListener(new DialogInterface.OnCancelListener() {
+      @Override
+      public void onCancel(DialogInterface dialog) {
+          LoginTask.this.cancel(true);
+          mProgress.dismiss();
+        }
+      });
+    mProgress.setCanceledOnTouchOutside(false);
+    mProgress.setCancelable(true);
   }
 
   @Override
@@ -112,7 +132,7 @@ public class LoginTask extends AsyncTask<String, Void, String> {
         try {
           // Resend the join request
           if (DEBUG)
-            Log.v(TAG, "Resending join request... (" + (numAttempts+1) + ")");
+            Log.v(TAG, "Resending join request... (" + (numAttempts + 1) + ")");
           mSocket.send(sendPacket);
         } catch (IOException ignore) {
           Log.e(TAG, "Could not send join request to server.");
@@ -140,6 +160,7 @@ public class LoginTask extends AsyncTask<String, Void, String> {
     if (DEBUG) {
       Log.v(TAG, "onPostExecute() called!");
     }
+    mProgress.dismiss();
     if (mCallback != null) {
       if (DEBUG) {
         if (result != null)
@@ -154,6 +175,7 @@ public class LoginTask extends AsyncTask<String, Void, String> {
     if (DEBUG) {
       Log.v(TAG, "onCancelled() called!");
     }
+    mProgress.dismiss();
     if (mCallback != null) {
       if (DEBUG) {
         Log.v(TAG, "The LoginTask was cancelled!");

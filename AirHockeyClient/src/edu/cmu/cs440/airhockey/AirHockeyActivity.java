@@ -3,9 +3,7 @@ package edu.cmu.cs440.airhockey;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -38,7 +36,6 @@ public class AirHockeyActivity extends FragmentActivity implements
   private Vibrator mVibrator;
 
   private LoginDialogFragment mDialog;
-  private ProgressDialog mProgress;
   private LoginTask mLoginTask;
   private NetworkThread mNetworkThread;
 
@@ -119,19 +116,7 @@ public class AirHockeyActivity extends FragmentActivity implements
       mPort = port;
       mPuckColor = color;
       mBallsView.setDefaultPuckColor(mPuckColor);
-      mProgress = ProgressDialog.show(this, "", "Connecting...", true);
-      mProgress.setOnCancelListener(new DialogInterface.OnCancelListener() {
-        @Override
-        public void onCancel(DialogInterface dialog) {
-          if (mLoginTask != null) {
-            mLoginTask.cancel(true);
-            mProgress.dismiss();
-          }
-        }
-      });
-      mProgress.setCanceledOnTouchOutside(false);
-      mProgress.setCancelable(true);
-      mLoginTask = new LoginTask(this);
+      mLoginTask = new LoginTask(this, this);
       mLoginTask.execute(mUser, mHost, mPort);
     } else {
       Toast.makeText(this, "No internet connection found.", Toast.LENGTH_SHORT)
@@ -144,7 +129,6 @@ public class AirHockeyActivity extends FragmentActivity implements
     if (result == null) {
       if (DEBUG)
         Log.v(TAG, "Client did not receive server response!");
-      mProgress.dismiss();
       Toast.makeText(this, "Could not connect! Please try again.",
           Toast.LENGTH_SHORT).show();
       return;
@@ -154,13 +138,11 @@ public class AirHockeyActivity extends FragmentActivity implements
     if (result.equals("JNO")) {
       if (DEBUG)
         Log.v(TAG, "Client failed to join!");
-      mProgress.dismiss();
       Toast.makeText(this, "Could not connect! Please try again.",
           Toast.LENGTH_SHORT).show();
     }
 
     else if (result.equals("DUP")) {
-      mProgress.dismiss();
       if (DEBUG)
         Log.v(TAG, "Client failed to join!");
       Toast.makeText(this, "User already connected!", Toast.LENGTH_SHORT)
@@ -170,8 +152,7 @@ public class AirHockeyActivity extends FragmentActivity implements
     else if (index >= 0 && result.substring(0, index).equals("JOK")) {
       if (DEBUG)
         Log.v(TAG, "Client joined successfully!");
-      mProgress.setMessage("Setting up game environment...");
-      mProgress.setCancelable(false);
+      mDialog.dismiss();
       PuckRegion region = mBallsView.getEngine().getRegion();
       mNetworkThread = new NetworkThread(region, mHandler, mHost, mPort, mUser);
       mNetworkThread.start();
@@ -184,7 +165,6 @@ public class AirHockeyActivity extends FragmentActivity implements
     mBallsView.getEngine().reset(SystemClock.elapsedRealtime(),
         NEW_GAME_NUM_BALLS);
     mBallsView.setMode(AirHockeyView.Mode.Bouncing);
-    mProgress.dismiss();
     mDialog.dismiss();
   }
 
@@ -194,9 +174,6 @@ public class AirHockeyActivity extends FragmentActivity implements
     mBallsView.getEngine().reset(SystemClock.elapsedRealtime(),
         PREVIEW_NUM_BALLS);
     mBallsView.setMode(AirHockeyView.Mode.Bouncing);
-    if (mProgress != null) {
-      mProgress.dismiss();
-    }
     showLoginDialog();
   }
 
@@ -219,18 +196,26 @@ public class AirHockeyActivity extends FragmentActivity implements
     if (mNetworkThread != null) {
       final PuckRegion region = mBallsView.getEngine().getRegion();
       final byte[] data = Utils.toBytes(region, ball, exitEdge);
-      mExecutor.execute(new Runnable() {
-        @Override
-        public void run() {
-          mNetworkThread.write(data);
-        }
-      });
+      mExecutor.execute(new WriteRunnable(data));
     }
   }
 
   // Use a single thread executor instead of creating a new thread for each
   // individual write message.
   private ExecutorService mExecutor = Executors.newSingleThreadExecutor();
+
+  private class WriteRunnable implements Runnable {
+    private byte[] mData;
+
+    public WriteRunnable(byte[] data) {
+      mData = data;
+    }
+
+    @Override
+    public void run() {
+      mNetworkThread.write(mData);
+    }
+  }
 
   // TODO: when a read/write fails, make sure that it is somehow brought to
   // the front of the handler's message queue so that the client doesn't do
