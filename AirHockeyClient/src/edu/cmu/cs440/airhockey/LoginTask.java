@@ -158,7 +158,6 @@ public class LoginTask extends AsyncTask<String, Void, String> {
       if (DEBUG) {
         Log.v(TAG, "The LoginTask was cancelled!");
       }
-      mCallback.onLoginComplete(null);
     }
   }
 

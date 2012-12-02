@@ -104,8 +104,25 @@ public class NetworkThread extends Thread {
           double angle = Double.parseDouble(args[2]);
           float pps = Float.parseFloat(args[3]);
           float radius = Float.parseFloat(args[4]);
+          String colorText = args[5];
+
+          Puck.Color color;
+          if (colorText.equals("blue")) {
+            color = Puck.Color.Blue;
+          } else if (colorText.equals("green")) {
+            color = Puck.Color.Green;
+          } else if (colorText.equals("orange")) {
+            color = Puck.Color.Orange;
+          } else if (colorText.equals("purple")) {
+            color = Puck.Color.Purple;
+          } else if (colorText.equals("red")) {
+            color = Puck.Color.Red;
+          } else { //if (colorText.equals("yellow")) {
+            color = Puck.Color.Yellow;
+          }
+
           msg = Utils.toBall(mRegion, puckId, inEdge, xEntryPercent,
-              yEntryPercent, angle, pps, radius);
+              yEntryPercent, angle, pps, radius, color);
 
           // mHandler.obtainMessage(AirHockeyActivity.MESSAGE_TOAST).sendToTarget();
           // Message message =

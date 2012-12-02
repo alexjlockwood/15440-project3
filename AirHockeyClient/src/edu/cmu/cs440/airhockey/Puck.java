@@ -30,9 +30,10 @@ public class Puck extends Shape {
   private boolean mPressed;
   private long mLastUpdate;
   private int mHasExited;
+  private Color mColor;
 
   private Puck(long now, int id, float pps, float x, float y, double angle,
-      float radius) {
+      float radius, Color color) {
     mId = id;
     mX = x;
     mY = y;
@@ -42,6 +43,7 @@ public class Puck extends Shape {
     mPressed = false;
     mLastUpdate = now;
     mHasExited = -1;
+    mColor = color;
   }
 
   public int getId() {
@@ -116,6 +118,14 @@ public class Puck extends Shape {
 
   public void setPixelsPerSecond(float pps) {
     mPixelsPerSecond = pps;
+  }
+
+  public Color getColor() {
+    return mColor;
+  }
+
+  public void setColor(Color color) {
+    mColor = color;
   }
 
   public boolean isPressed() {
@@ -339,10 +349,9 @@ public class Puck extends Shape {
     private float mX = -1;
     private float mY = -1;
     private double mAngle = -1;
+    private Color mColor = Color.Blue;
     private float mRadiusPixels = -1;
     private float mPixelsPerSecond = 120f;
-
-    // TODO: fix weird scenario in which the angle is negative??
 
     public Puck create() {
       if (mNow < 0) {
@@ -368,7 +377,7 @@ public class Puck extends Shape {
         throw new IllegalStateException("radius must be set");
       }
       return new Puck(mNow, mId, mPixelsPerSecond, mX, mY, mAngle,
-          mRadiusPixels);
+          mRadiusPixels, mColor);
     }
 
     public Builder setId(int id) {
@@ -405,5 +414,19 @@ public class Puck extends Shape {
       mPixelsPerSecond = pixelsPerSecond;
       return this;
     }
+
+    public Builder setColor(Color color) {
+      mColor = color;
+      return this;
+    }
+  }
+
+  public enum Color {
+    Blue,
+    Green,
+    Orange,
+    Purple,
+    Red,
+    Yellow,
   }
 }

@@ -12,6 +12,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 public class LoginDialogFragment extends DialogFragment implements
@@ -26,6 +27,7 @@ public class LoginDialogFragment extends DialogFragment implements
   private EditText mHostname;
   private EditText mPort;
   private Button mConnect;
+  private Spinner mColorsSpinner;
 
   static LoginDialogFragment newInstance() {
     return new LoginDialogFragment();
@@ -43,6 +45,7 @@ public class LoginDialogFragment extends DialogFragment implements
     mUsername = (EditText) v.findViewById(R.id.username);
     mHostname = (EditText) v.findViewById(R.id.hostname);
     mPort = (EditText) v.findViewById(R.id.port);
+    mColorsSpinner = (Spinner) v.findViewById(R.id.colors_spinner);
 
     mHostname.setText("unix11.andrew.cmu.edu");
     mPort.setText("18001");
@@ -72,7 +75,24 @@ public class LoginDialogFragment extends DialogFragment implements
         return;
       }
 
-      mCallback.onNewGame(user, host, port);
+      String colorText = mColorsSpinner.getSelectedItem().toString().toLowerCase();
+
+     Puck.Color color;
+      if (colorText.equals("blue")) {
+        color = Puck.Color.Blue;
+      } else if (colorText.equals("green")) {
+        color = Puck.Color.Green;
+      } else if (colorText.equals("orange")) {
+        color = Puck.Color.Orange;
+      } else if (colorText.equals("purple")) {
+        color = Puck.Color.Purple;
+      } else if (colorText.equals("red")) {
+        color = Puck.Color.Red;
+      } else { //if (colorText.equals("yellow")) {
+        color = Puck.Color.Yellow;
+      }
+
+      mCallback.onNewGame(user, host, port, color);
     }
   }
 
@@ -112,7 +132,7 @@ public class LoginDialogFragment extends DialogFragment implements
     /**
      * The user wants to start a new game.
      */
-    void onNewGame(String user, String host, String port);
+    void onNewGame(String user, String host, String port, Puck.Color color);
   }
 
 }

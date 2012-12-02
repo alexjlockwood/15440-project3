@@ -45,6 +45,8 @@ public class AirHockeyActivity extends FragmentActivity implements
   private String mHost;
   private String mPort;
 
+  private Puck.Color mPuckColor;
+
   public static final int STATE_NONE = 0;
   public static final int STATE_CONNECTED = 1;
   public static final int MESSAGE_READ = 2;
@@ -108,17 +110,19 @@ public class AirHockeyActivity extends FragmentActivity implements
 
   /** {@inheritDoc} */
   @Override
-  public void onNewGame(String user, String host, String port) {
+  public void onNewGame(String user, String host, String port, Puck.Color color) {
     if (Utils.isOnline(this)) {
       mUser = user;
       mHost = host;
       mPort = port;
+      mPuckColor = color;
       mProgress = ProgressDialog.show(this, "", "Connecting...", true);
       mProgress.setOnCancelListener(new DialogInterface.OnCancelListener() {
         @Override
         public void onCancel(DialogInterface dialog) {
           if (mLoginTask != null) {
             mLoginTask.cancel(true);
+            mProgress.dismiss();
           }
         }
       });
@@ -244,6 +248,7 @@ public class AirHockeyActivity extends FragmentActivity implements
               break;
             case NetworkThread.POK:
               Puck newBall = mBallsView.randomIncomingPuck((Integer) msg.obj);
+              newBall.setColor(mPuckColor);
               newBall.setRegion(mBallsView.getEngine().getRegion());
               mBallsView.getEngine().addIncomingPuck(newBall);
               if (DEBUG) {

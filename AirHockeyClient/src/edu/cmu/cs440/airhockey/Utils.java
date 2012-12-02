@@ -10,12 +10,28 @@ public class Utils {
   // Used for sending outgoing pucks
   public static byte[] toBytes(PuckRegion region, Puck ball, int outEdge) {
     // Client sends "X,puckId,edgeNum,args"
-    // args: "xEntryPercent;yEntryPercent;angle;pps;radius"
+    // args: "xEntryPercent;yEntryPercent;angle;pps;radius;color"
 
     float minX = region.getLeft();
     float maxX = region.getRight();
     float minY = region.getTop();
     float maxY = region.getBottom();
+
+    Puck.Color ballColor = ball.getColor();
+    String colorText;
+    if (ballColor == Puck.Color.Blue) {
+      colorText = "blue";
+    } else if (ballColor == Puck.Color.Green){
+      colorText = "green";
+    } else if (ballColor == Puck.Color.Orange){
+      colorText = "orange";
+    } else if (ballColor == Puck.Color.Purple){
+      colorText = "purple";
+    } else if (ballColor == Puck.Color.Red){
+      colorText = "red";
+    } else { //if (ballColor == Puck.Color.Yellow) {
+      colorText = "yellow";
+    }
 
     StringBuilder b = new StringBuilder();
     b = b.append("X,");
@@ -25,21 +41,22 @@ public class Utils {
     b = b.append(ball.getY() / (maxY - minY)).append(";"); // yEntryPercent
     b = b.append(ball.getAngle()).append(";");
     b = b.append(ball.getPixelsPerSecond()).append(";");
-    b = b.append(ball.getRadiusPixels());
+    b = b.append(ball.getRadiusPixels()).append(";");
+    b = b.append(colorText);
 
     return b.toString().getBytes();
   }
 
   public static Puck toBall(PuckRegion region, int puckId, int inEdge,
       float xEntryPercent, float yEntryPercent, double angle, float pps,
-      float radius) {
+      float radius, Puck.Color color) {
     float minX = region.getLeft();
     float maxX = region.getRight();
     float minY = region.getTop();
     float maxY = region.getBottom();
 
     Puck.Builder builder = new Puck.Builder().setId(puckId)
-        .setPixelsPerSecond(pps).setAngle(angle).setRadiusPixels(radius);
+        .setPixelsPerSecond(pps).setAngle(angle).setRadiusPixels(radius).setColor(color);
 
     switch (inEdge) {
       case PuckRegion.LEFT:
