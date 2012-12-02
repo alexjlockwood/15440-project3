@@ -127,12 +127,10 @@ public class PuckRegion extends Shape {
       ball.update(now);
       int exitEdge = ball.hasExited();
       if (exitEdge >= 0) {
-        // if (!movingAwayFromWall(ball, exitEdge)) {
         // The ball has exited the region. Remove it from the region's
         // list of balls.
         mCallback.get().onBallExitsRegion(now, ball, exitEdge);
         iter.remove();
-        // }
       }
     }
 
