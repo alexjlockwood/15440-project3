@@ -150,22 +150,4 @@ public class PuckRegion extends Shape {
       }
     }
   }
-
-  private static boolean movingAwayFromWall(Puck ball, int edge) {
-    double angle = ball.getAngle();
-    switch (edge) {
-      case PuckRegion.BOTTOM:
-        return 0 <= angle && angle < Math.PI;
-      case PuckRegion.TOP:
-        return Math.PI <= angle && angle < 2 * Math.PI;
-      case PuckRegion.LEFT:
-        return 0 <= angle && angle < 0.5 * Math.PI && 1.5 * Math.PI <= angle
-            && angle < 2 * Math.PI;
-      case PuckRegion.RIGHT:
-        return 0.5 * Math.PI <= angle && angle < 1.5 * Math.PI;
-      default:
-        // Will never happen
-        return false;
-    }
-  }
 }

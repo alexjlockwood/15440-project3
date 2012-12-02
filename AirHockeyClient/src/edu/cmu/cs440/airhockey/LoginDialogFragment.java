@@ -1,5 +1,8 @@
 package edu.cmu.cs440.airhockey;
 
+import java.util.Locale;
+import java.util.regex.Pattern;
+
 import android.app.Activity;
 import android.content.DialogInterface;
 import android.os.Bundle;
@@ -56,12 +59,18 @@ public class LoginDialogFragment extends DialogFragment implements
   @Override
   public void onClick(View v) {
     if (v == mConnect) {
-      String user = mUsername.getText().toString();
-      String host = mHostname.getText().toString();
-      String port = mPort.getText().toString();
+      Pattern p = Pattern.compile("[^A-Za-z0-9]");
+      String user = mUsername.getText().toString().trim();
+      String host = mHostname.getText().toString().trim();
+      String port = mPort.getText().toString().trim();
 
       if (TextUtils.isEmpty(user)) {
         Toast.makeText(mActivity, "User name must not be empty!",
+            Toast.LENGTH_SHORT).show();
+        return;
+      } else if (p.matcher(user).find()) {
+        Toast.makeText(mActivity,
+            "User name must contain alphanumeric characters only!",
             Toast.LENGTH_SHORT).show();
         return;
       } else if (TextUtils.isEmpty(host)) {
@@ -75,9 +84,10 @@ public class LoginDialogFragment extends DialogFragment implements
         return;
       }
 
-      String colorText = mColorsSpinner.getSelectedItem().toString().toLowerCase();
+      String colorText = mColorsSpinner.getSelectedItem().toString();
+      colorText = colorText.toLowerCase(Locale.US);
 
-     Puck.Color color;
+      Puck.Color color;
       if (colorText.equals("blue")) {
         color = Puck.Color.Blue;
       } else if (colorText.equals("green")) {
@@ -88,7 +98,7 @@ public class LoginDialogFragment extends DialogFragment implements
         color = Puck.Color.Purple;
       } else if (colorText.equals("red")) {
         color = Puck.Color.Red;
-      } else { //if (colorText.equals("yellow")) {
+      } else { // if (colorText.equals("yellow")) {
         color = Puck.Color.Yellow;
       }
 

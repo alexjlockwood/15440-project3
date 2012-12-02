@@ -14,6 +14,7 @@ import android.os.Vibrator;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Toast;
 import edu.cmu.cs440.airhockey.LoginDialogFragment.NewGameCallback;
 import edu.cmu.cs440.airhockey.LoginTask.LoginCallback;
@@ -62,6 +63,7 @@ public class AirHockeyActivity extends FragmentActivity implements
     // Turn off the title bar
     requestWindowFeature(Window.FEATURE_NO_TITLE);
     setContentView(R.layout.main);
+    getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     mBallsView = (AirHockeyView) findViewById(R.id.ballsView);
     mBallsView.setCallback(this);
 

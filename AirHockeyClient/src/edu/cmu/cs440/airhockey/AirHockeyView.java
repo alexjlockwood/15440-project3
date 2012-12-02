@@ -27,7 +27,6 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
   private static final boolean DEBUG = true;
 
   public static final int BORDER_WIDTH = 10;
-
   private static final float BALL_START_SPEED = 120f;
 
   /**
@@ -249,7 +248,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
       }
     }
 
-    final double radiusBounds24 = 2.5 * mBallRadiusSmall;
+    final double radiusBounds24 = 2.0 * mBallRadiusSmall;
     List<Puck> goalBalls = mEngine.getGoalRegion().getBalls();
     Iterator<Puck> goalIter = goalBalls.iterator();
     while (goalIter.hasNext()) {

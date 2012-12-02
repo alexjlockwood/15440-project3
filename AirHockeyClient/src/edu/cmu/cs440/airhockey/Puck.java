@@ -18,7 +18,7 @@ public class Puck extends Shape {
   private static final boolean DEBUG = true;
 
   public static final float MIN_SPEED = 100f;
-  public static final float MAX_SPEED = 600f;
+  public static final float MAX_SPEED = 900f;
 
   private PuckRegion mRegion;
   private int mId;
