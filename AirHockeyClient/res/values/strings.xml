@@ -8,5 +8,15 @@
     <string name="connect">Connect</string>
     <string name="unpause_instructions">Touch to unpause</string>
     <string name="press_back_to_exit_warning">Press again to exit!</string>
+    <string name="select_color">Select color</string>
+
+    <string-array name="colors">
+        <item>Blue</item>
+        <item>Green</item>
+        <item>Orange</item>
+        <item>Purple</item>
+        <item>Red</item>
+        <item>Yellow</item>
+    </string-array>
 
 </resources>
