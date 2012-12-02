@@ -244,9 +244,6 @@ public class Puck extends Shape {
   }
 
   private void bounceOffBottom() {
-    if (DEBUG) {
-      Log.v(TAG, "bounceOffBottom() called! (mDirection -> " + mDirection + ")");
-    }
     if (mDirection < 0.5 * Math.PI) {
       mDirection = -mDirection; // going right
     } else {
@@ -255,9 +252,6 @@ public class Puck extends Shape {
   }
 
   private void bounceOffRight() {
-    if (DEBUG) {
-      Log.v(TAG, "bounceOffRight() called! (mDirection -> " + mDirection + ")");
-    }
     if (mDirection > 1.5 * Math.PI) {
       mDirection -= (mDirection - 1.5 * Math.PI) * 2; // going up
     } else {
@@ -266,9 +260,6 @@ public class Puck extends Shape {
   }
 
   private void bounceOffTop() {
-    if (DEBUG) {
-      Log.v(TAG, "bounceOffTop() called! (mDirection -> " + mDirection + ")");
-    }
     if (mDirection < 1.5 * Math.PI) {
       mDirection -= (mDirection - Math.PI) * 2; // going left
     } else {
@@ -282,9 +273,6 @@ public class Puck extends Shape {
       mDirection -= ((mDirection - (Math.PI / 2)) * 2); // going down
     } else {
       mDirection += (((1.5 * Math.PI) - mDirection) * 2); // going up
-    }
-    if (DEBUG) {
-      Log.v(TAG, "bounceOffLeft() called! (mDirection -> " + mDirection + ")");
     }
   }
 
@@ -334,8 +322,8 @@ public class Puck extends Shape {
   @Override
   public String toString() {
     return String.format(Locale.US,
-        "Ball(id=%d, x=%f, y=%f, angle=%f, exitEdge=%d)", mId, mX, mY,
-        Math.toDegrees(mDirection), mHasExited);
+        "Ball(id=%d, x=%f, y=%f, angle=%f, color=%s, exitEdge=%d)", mId, mX, mY,
+        Math.toDegrees(mDirection), Utils.colorToStr(mColor), mHasExited);
   }
 
   /**
@@ -349,9 +337,9 @@ public class Puck extends Shape {
     private float mX = -1;
     private float mY = -1;
     private double mAngle = -1;
-    private Color mColor = Color.Blue;
     private float mRadiusPixels = -1;
     private float mPixelsPerSecond = 120f;
+    private Color mPuckColor = Color.Blue;
 
     public Puck create() {
       if (mNow < 0) {
@@ -377,7 +365,7 @@ public class Puck extends Shape {
         throw new IllegalStateException("radius must be set");
       }
       return new Puck(mNow, mId, mPixelsPerSecond, mX, mY, mAngle,
-          mRadiusPixels, mColor);
+          mRadiusPixels, mPuckColor);
     }
 
     public Builder setId(int id) {
@@ -416,7 +404,7 @@ public class Puck extends Shape {
     }
 
     public Builder setColor(Color color) {
-      mColor = color;
+      mPuckColor = color;
       return this;
     }
   }

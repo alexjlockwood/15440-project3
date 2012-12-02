@@ -54,7 +54,7 @@ public class AirHockeyActivity extends FragmentActivity implements
   public static final int MESSAGE_TOAST = 4;
 
   // The client's current connection state
-  private int mState = STATE_NONE;
+  // private int mState = STATE_NONE;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -65,7 +65,7 @@ public class AirHockeyActivity extends FragmentActivity implements
     mBallsView = (AirHockeyView) findViewById(R.id.ballsView);
     mBallsView.setCallback(this);
 
-    mState = STATE_NONE;
+    // mState = STATE_NONE;
     mVibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
   }
 
@@ -116,6 +116,7 @@ public class AirHockeyActivity extends FragmentActivity implements
       mHost = host;
       mPort = port;
       mPuckColor = color;
+      mBallsView.setDefaultPuckColor(mPuckColor);
       mProgress = ProgressDialog.show(this, "", "Connecting...", true);
       mProgress.setOnCancelListener(new DialogInterface.OnCancelListener() {
         @Override
@@ -262,7 +263,7 @@ public class AirHockeyActivity extends FragmentActivity implements
         case STATE_NONE:
           if (DEBUG)
             Log.v(TAG, "STATE_NONE received.");
-          mState = STATE_NONE;
+          // mState = STATE_NONE;
           Toast.makeText(AirHockeyActivity.this, "Connection lost.",
               Toast.LENGTH_SHORT).show();
           resetGame();
@@ -270,7 +271,7 @@ public class AirHockeyActivity extends FragmentActivity implements
         case STATE_CONNECTED:
           if (DEBUG)
             Log.v(TAG, "STATE_CONNECTED received.");
-          mState = STATE_CONNECTED;
+          // mState = STATE_CONNECTED;
           startGame();
           break;
         case MESSAGE_TOAST:

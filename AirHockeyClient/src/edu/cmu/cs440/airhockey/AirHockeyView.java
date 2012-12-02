@@ -34,6 +34,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
    * Directs callback events to the {@link AirHockeyActivity}.
    */
   private BallEngineCallBack mCallback;
+  private Puck.Color mPuckColor;
   private final Paint mPaint;
   private PuckEngine mEngine;
   private Mode mMode = Mode.Paused;
@@ -77,18 +78,27 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
     // retrieve and decode bitmaps
     Resources res = context.getResources();
     mBallBlueBig = BitmapFactory.decodeResource(res, R.drawable.ball_blue_big);
-    mBallBlueSmall = BitmapFactory.decodeResource(res, R.drawable.ball_blue_small);
-    mBallGreenBig = BitmapFactory.decodeResource(res, R.drawable.ball_green_big);
-    mBallGreenSmall = BitmapFactory.decodeResource(res, R.drawable.ball_green_small);
-    mBallOrangeBig = BitmapFactory.decodeResource(res, R.drawable.ball_orange_big);
-    mBallOrangeSmall = BitmapFactory.decodeResource(res, R.drawable.ball_orange_small);
-    mBallPurpleBig = BitmapFactory.decodeResource(res, R.drawable.ball_purple_big);
-    mBallPurpleSmall = BitmapFactory.decodeResource(res, R.drawable.ball_purple_small);
+    mBallBlueSmall = BitmapFactory.decodeResource(res,
+        R.drawable.ball_blue_small);
+    mBallGreenBig = BitmapFactory
+        .decodeResource(res, R.drawable.ball_green_big);
+    mBallGreenSmall = BitmapFactory.decodeResource(res,
+        R.drawable.ball_green_small);
+    mBallOrangeBig = BitmapFactory.decodeResource(res,
+        R.drawable.ball_orange_big);
+    mBallOrangeSmall = BitmapFactory.decodeResource(res,
+        R.drawable.ball_orange_small);
+    mBallPurpleBig = BitmapFactory.decodeResource(res,
+        R.drawable.ball_purple_big);
+    mBallPurpleSmall = BitmapFactory.decodeResource(res,
+        R.drawable.ball_purple_small);
     mBallRedBig = BitmapFactory.decodeResource(res, R.drawable.ball_red_big);
-    mBallRedSmall = BitmapFactory.decodeResource(res, R.drawable.ball_red_small);
-    mBallYellowBig = BitmapFactory.decodeResource(res, R.drawable.ball_yellow_big);
-    mBallYellowSmall = BitmapFactory.decodeResource(res, R.drawable.ball_yellow_small);
-
+    mBallRedSmall = BitmapFactory
+        .decodeResource(res, R.drawable.ball_red_small);
+    mBallYellowBig = BitmapFactory.decodeResource(res,
+        R.drawable.ball_yellow_big);
+    mBallYellowSmall = BitmapFactory.decodeResource(res,
+        R.drawable.ball_yellow_small);
 
     mBallRadiusBig = ((float) mBallBlueBig.getWidth()) / 2f;
     mBallRadiusSmall = ((float) mBallBlueSmall.getWidth()) / 2f;
@@ -101,6 +111,10 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
    */
   public void setCallback(BallEngineCallBack callback) {
     mCallback = callback;
+  }
+
+  public void setDefaultPuckColor(Puck.Color color) {
+    mPuckColor = color;
   }
 
   @Override
@@ -168,6 +182,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
         if (ball != null) {
           mPressedBall = ball;
           mPressedBall.setCoords(x, y);
+          mPressedBall.setColor(mPuckColor);
           mLastPressedX = x;
           mLastPressedY = y;
           mPressedBall.setNow(now);
@@ -274,8 +289,9 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
     drawGoal(canvas, goal);
     drawBalls(canvas, region, goal);
     if (mPressedBall != null) {
-      canvas.drawBitmap(mBallBlueBig, mPressedBall.getX() - mBallRadiusBig,
-          mPressedBall.getY() - mBallRadiusBig, mPaint);
+      canvas.drawBitmap(getColoredPuckBig(mPressedBall.getColor()),
+          mPressedBall.getX() - mBallRadiusBig, mPressedBall.getY()
+              - mBallRadiusBig, mPaint);
     }
 
     if (mMode == Mode.PausedByUser) {
@@ -346,17 +362,51 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
     List<Puck> regionBalls = region.getBalls();
     for (int i = 0; i < regionBalls.size(); i++) {
       final Puck ball = regionBalls.get(i);
-      canvas.drawBitmap(mBallBlueBig, ball.getX() - mBallRadiusBig, ball.getY()
+      Bitmap bigBitmap = getColoredPuckBig(ball.getColor());
+      canvas.drawBitmap(bigBitmap, ball.getX() - mBallRadiusBig, ball.getY()
           - mBallRadiusBig, mPaint);
     }
 
     List<Puck> goalBalls = goal.getBalls();
     for (int i = 0; i < goalBalls.size(); i++) {
       final Puck ball = goalBalls.get(i);
-      canvas.drawBitmap(mBallBlueSmall, ball.getX() - mBallRadiusSmall, ball.getY()
-          - mBallRadiusSmall, mPaint);
+      Bitmap smallBitmap = getColoredPuckSmall(ball.getColor());
+      canvas.drawBitmap(smallBitmap, ball.getX() - mBallRadiusSmall,
+          ball.getY() - mBallRadiusSmall, mPaint);
     }
     mPaint.setAntiAlias(true);
+  }
+
+  private Bitmap getColoredPuckBig(Puck.Color color) {
+    if (color == Puck.Color.Blue) {
+      return mBallBlueBig;
+    } else if (color == Puck.Color.Green) {
+      return mBallGreenBig;
+    } else if (color == Puck.Color.Orange) {
+      return mBallOrangeBig;
+    } else if (color == Puck.Color.Purple) {
+      return mBallPurpleBig;
+    } else if (color == Puck.Color.Red) {
+      return mBallRedBig;
+    } else { // if (ballColor == Puck.Color.Yellow) {
+      return mBallYellowBig;
+    }
+  }
+
+  private Bitmap getColoredPuckSmall(Puck.Color color) {
+    if (color == Puck.Color.Blue) {
+      return mBallBlueSmall;
+    } else if (color == Puck.Color.Green) {
+      return mBallGreenSmall;
+    } else if (color == Puck.Color.Orange) {
+      return mBallOrangeSmall;
+    } else if (color == Puck.Color.Purple) {
+      return mBallPurpleSmall;
+    } else if (color == Puck.Color.Red) {
+      return mBallRedSmall;
+    } else { // if (ballColor == Puck.Color.Yellow) {
+      return mBallYellowSmall;
+    }
   }
 
   /** {@inheritDoc} */

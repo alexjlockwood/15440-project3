@@ -1,5 +1,7 @@
 package edu.cmu.cs440.airhockey;
 
+import java.util.Locale;
+
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -16,22 +18,7 @@ public class Utils {
     float maxX = region.getRight();
     float minY = region.getTop();
     float maxY = region.getBottom();
-
-    Puck.Color ballColor = ball.getColor();
-    String colorText;
-    if (ballColor == Puck.Color.Blue) {
-      colorText = "blue";
-    } else if (ballColor == Puck.Color.Green){
-      colorText = "green";
-    } else if (ballColor == Puck.Color.Orange){
-      colorText = "orange";
-    } else if (ballColor == Puck.Color.Purple){
-      colorText = "purple";
-    } else if (ballColor == Puck.Color.Red){
-      colorText = "red";
-    } else { //if (ballColor == Puck.Color.Yellow) {
-      colorText = "yellow";
-    }
+    String colorText = Utils.colorToStr(ball.getColor());
 
     StringBuilder b = new StringBuilder();
     b = b.append("X,");
@@ -56,7 +43,8 @@ public class Utils {
     float maxY = region.getBottom();
 
     Puck.Builder builder = new Puck.Builder().setId(puckId)
-        .setPixelsPerSecond(pps).setAngle(angle).setRadiusPixels(radius).setColor(color);
+        .setPixelsPerSecond(pps).setAngle(angle).setRadiusPixels(radius)
+        .setColor(color);
 
     switch (inEdge) {
       case PuckRegion.LEFT:
@@ -78,6 +66,39 @@ public class Utils {
     }
 
     return builder.setNow(SystemClock.elapsedRealtime()).create();
+  }
+
+  public static Puck.Color strToColor(String colorText) {
+    colorText = colorText.toLowerCase(Locale.US);
+    if (colorText.equals("blue")) {
+      return Puck.Color.Blue;
+    } else if (colorText.equals("green")) {
+      return Puck.Color.Green;
+    } else if (colorText.equals("orange")) {
+      return Puck.Color.Orange;
+    } else if (colorText.equals("purple")) {
+      return Puck.Color.Purple;
+    } else if (colorText.equals("red")) {
+      return Puck.Color.Red;
+    } else { // if (colorText.equals("yellow")) {
+      return Puck.Color.Yellow;
+    }
+  }
+
+  public static String colorToStr(Puck.Color color) {
+    if (color == Puck.Color.Blue) {
+      return "blue";
+    } else if (color == Puck.Color.Green) {
+      return "green";
+    } else if (color == Puck.Color.Orange) {
+      return "orange";
+    } else if (color == Puck.Color.Purple) {
+      return "purple";
+    } else if (color == Puck.Color.Red) {
+      return "red";
+    } else { // if (ballColor == Puck.Color.Yellow) {
+      return "yellow";
+    }
   }
 
   public static boolean isOnline(Context ctx) {

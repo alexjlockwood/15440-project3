@@ -6,6 +6,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 
 import android.os.Handler;
 import android.util.Log;
@@ -67,7 +68,7 @@ public class NetworkThread extends Thread {
 
     // Loop forever, read new messages from the network, and forward them to
     // the Activity.
-    byte[] buf = new byte[64];
+    byte[] buf = new byte[128];
     while (true) {
       DatagramPacket packet = new DatagramPacket(buf, buf.length);
       try {
@@ -97,6 +98,7 @@ public class NetworkThread extends Thread {
           // args: "xEntryPercent;yEntryPercent;angle;pps;radius"
           arg1 = IP;
           String[] args = fields[3].split(";");
+          Log.v(TAG, Arrays.toString(fields));
           int puckId = Integer.parseInt(fields[1]);
           int inEdge = Integer.parseInt(fields[2]);
           float xEntryPercent = Float.parseFloat(args[0]);
