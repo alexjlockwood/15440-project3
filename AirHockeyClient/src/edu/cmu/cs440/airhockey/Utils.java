@@ -10,7 +10,7 @@ import android.os.SystemClock;
 public class Utils {
 
   // Used for sending outgoing pucks
-  public static byte[] toBytes(PuckRegion region, Puck ball, int outEdge) {
+  public static String toString(PuckRegion region, Puck ball, int outEdge) {
     // Client sends "X,puckId,edgeNum,args"
     // args: "xEntryPercent;yEntryPercent;angle;pps;radius;color"
 
@@ -29,14 +29,16 @@ public class Utils {
     b = b.append(ball.getAngle()).append(";");
     b = b.append(ball.getPixelsPerSecond()).append(";");
     b = b.append(ball.getRadiusPixels()).append(";");
-    b = b.append(colorText);
+    b = b.append(colorText).append(";");
+    b = b.append(ball.getLastUser());
+    b = b.append("\n");
 
-    return b.toString().getBytes();
+    return b.toString();
   }
 
   public static Puck toBall(PuckRegion region, int puckId, int inEdge,
       float xEntryPercent, float yEntryPercent, double angle, float pps,
-      float radius, Puck.Color color) {
+      float radius, Puck.Color color, String user) {
     float minX = region.getLeft();
     float maxX = region.getRight();
     float minY = region.getTop();
@@ -44,7 +46,7 @@ public class Utils {
 
     Puck.Builder builder = new Puck.Builder().setId(puckId)
         .setPixelsPerSecond(pps).setAngle(angle).setRadiusPixels(radius)
-        .setColor(color);
+        .setColor(color).setLastUser(user);
 
     switch (inEdge) {
       case PuckRegion.LEFT:

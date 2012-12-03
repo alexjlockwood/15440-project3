@@ -2,6 +2,8 @@ package edu.cmu.cs440.airhockey;
 
 import java.util.Locale;
 
+import android.text.TextUtils;
+
 /**
  * A ball has a current location, a trajectory angle, a speed in pixels per
  * second, and a last update time. It is capable of updating itself based on its
@@ -29,9 +31,10 @@ public class Puck extends Shape {
   private long mLastUpdate;
   private int mHasExited;
   private Color mColor;
+  private String mLastUser;
 
   private Puck(long now, int id, float pps, float x, float y, double angle,
-      float radius, Color color) {
+      float radius, Color color, String lastUser) {
     mId = id;
     mX = x;
     mY = y;
@@ -42,6 +45,7 @@ public class Puck extends Shape {
     mLastUpdate = now;
     mHasExited = -1;
     mColor = color;
+    mLastUser = lastUser;
   }
 
   public int getId() {
@@ -142,12 +146,24 @@ public class Puck extends Shape {
     mHasExited = i;
   }
 
+  public void setLastUser(String lastUser) {
+    mLastUser = lastUser;
+  }
+
+  public String getLastUser() {
+    return mLastUser;
+  }
+
+
   /**
    * Get the region that this ball is contained in.
    */
   public Shape getRegion() {
     return mRegion;
   }
+
+
+  // TODO: uncomment the method calls below??
 
   /**
    * Set the region that this ball is contained in.
@@ -339,6 +355,7 @@ public class Puck extends Shape {
     private float mRadiusPixels = -1;
     private float mPixelsPerSecond = 120f;
     private Color mPuckColor = Color.Blue;
+    private String mLastUser = null;
 
     public Puck create() {
       if (mNow < 0) {
@@ -353,19 +370,17 @@ public class Puck extends Shape {
       if (mY < 0) {
         // throw new IllegalStateException("Y must be stet");
       }
-      // if (mAngle < 0) {
-      // if (DEBUG) Log.v(TAG, "Adjusting angle from " + mAngle + " to " +
-      // mAngle + 2*Math.PI);
-      // mAngle += 2*Math.PI;
-      // }
       if (mAngle > 2 * Math.PI) {
         throw new IllegalStateException("angle must be less that 2Pi");
       }
       if (mRadiusPixels <= 0) {
         throw new IllegalStateException("radius must be set");
       }
+      if (TextUtils.isEmpty(mLastUser)) {
+        throw new IllegalStateException("puck must belong to a user!");
+      }
       return new Puck(mNow, mId, mPixelsPerSecond, mX, mY, mAngle,
-          mRadiusPixels, mPuckColor);
+          mRadiusPixels, mPuckColor, mLastUser);
     }
 
     public Builder setId(int id) {
@@ -405,6 +420,11 @@ public class Puck extends Shape {
 
     public Builder setColor(Color color) {
       mPuckColor = color;
+      return this;
+    }
+
+    public Builder setLastUser(String lastUser) {
+      mLastUser = lastUser;
       return this;
     }
   }

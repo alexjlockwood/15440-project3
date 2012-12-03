@@ -37,6 +37,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
   private final Paint mPaint;
   private PuckEngine mEngine;
   private Mode mMode = Mode.Paused;
+  private String mUser;
 
   private Bitmap mBallBlueBig;
   private Bitmap mBallBlueSmall;
@@ -110,6 +111,10 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
    */
   public void setCallback(BallEngineCallBack callback) {
     mCallback = callback;
+  }
+
+  public void setUser(String user) {
+    mUser = user;
   }
 
   public void setDefaultPuckColor(Puck.Color color) {
@@ -499,7 +504,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
 
     Puck incomingPuck = new Puck.Builder().setX(x).setY(y).setAngle(angle)
         .setRadiusPixels(radius).setPixelsPerSecond(pps).setId(puckId)
-        .setNow(SystemClock.elapsedRealtime()).create();
+        .setNow(SystemClock.elapsedRealtime()).setLastUser(mUser).create();
     if (DEBUG)
       Log.v(TAG,
           "Adding random incoming puck to screen: " + incomingPuck.toString());

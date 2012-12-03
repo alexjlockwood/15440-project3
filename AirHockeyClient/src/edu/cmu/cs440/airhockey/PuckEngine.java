@@ -121,16 +121,17 @@ public class PuckEngine {
    */
   public void reset(long now, int numBalls) {
     // Reset the outer region
-    ArrayList<Puck> balls = new ArrayList<Puck>(numBalls);
-    for (int i = 0; i < numBalls; i++) {
-      Puck ball = new Puck.Builder().setNow(now)
-          .setAngle(Math.random() * 2 * Math.PI)
-          .setX((float) Math.random() * (mMaxX - mMinX) + mMinX)
-          .setY((float) Math.random() * (mMaxY - mMinY) + mMinY)
-          .setRadiusPixels(mBallRadius).create();
-      balls.add(ball);
-    }
-    PuckRegion region = new PuckRegion(mMinX, mMaxX, mMinY, mMaxY, balls, false);
+    // ArrayList<Puck> balls = new ArrayList<Puck>(numBalls);
+    // for (int i = 0; i < numBalls; i++) {
+    // Puck ball = new Puck.Builder().setNow(now)
+    // .setAngle(Math.random() * 2 * Math.PI)
+    // .setX((float) Math.random() * (mMaxX - mMinX) + mMinX)
+    // .setY((float) Math.random() * (mMaxY - mMinY) + mMinY)
+    // .setRadiusPixels(mBallRadius).create();
+    // balls.add(ball);
+    // }
+    PuckRegion region = new PuckRegion(mMinX, mMaxX, mMinY, mMaxY,
+        new ArrayList<Puck>(numBalls), false);
     region.setCallBack(mCallBack);
     mRegion = region;
 

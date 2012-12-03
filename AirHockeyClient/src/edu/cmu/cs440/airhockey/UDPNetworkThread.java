@@ -1,16 +1,17 @@
 package edu.cmu.cs440.airhockey;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.net.Socket;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 
 import android.os.Handler;
-import android.os.Message;
 import android.util.Log;
 
-public class NetworkThread extends Thread {
+public class UDPNetworkThread extends Thread {
 
   private static final String TAG = "15440_NetworkThread";
   private static final boolean DEBUG = true;
@@ -23,17 +24,19 @@ public class NetworkThread extends Thread {
 
   private PuckRegion mRegion;
   private Handler mHandler;
-  private Socket mSocket;
-  private BufferedReader mIn;
-  private PrintWriter mOut;
+  private DatagramSocket mSocket;
+  private InetAddress mServerAddr;
+  private String mHostname;
+  private int mPort;
+  private String mUser;
 
-  public NetworkThread(PuckRegion region, Handler handler, Socket socket, BufferedReader in,
-      PrintWriter out) {
+  public UDPNetworkThread(PuckRegion region, Handler handler, String hostname,
+      String port, String user) {
     mRegion = region;
     mHandler = handler;
-    mSocket = socket;
-    mIn = in;
-    mOut = out;
+    mHostname = hostname;
+    mPort = Integer.parseInt(port);
+    mUser = user;
   }
 
   @Override
@@ -41,42 +44,48 @@ public class NetworkThread extends Thread {
     if (DEBUG)
       Log.v(TAG, "Starting NetworkThread...");
 
-    //try {
-    //  out = new PrintWriter(mSocket.getOutputStream(), true);
-    //  in = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
-    //} catch (IOException e) {
-    //  Log.e(TAG, "Client failed to get input and output streams!");
-    //  close();
-    //  return;
-    //}
+    try {
+      mServerAddr = InetAddress.getByName(mHostname);
+      mSocket = new DatagramSocket(mPort);
+      Log.v(TAG, "Receive buffer size: "+mSocket.getReceiveBufferSize());
+      Log.v(TAG, "Send buffer size: "+mSocket.getSendBufferSize());
+    } catch (UnknownHostException e) {
+      Log.e(TAG, "Could not resolve hostname: " + mHostname);
+      close();
+      return;
+    } catch (SocketException e) {
+      Log.e(TAG, "Socket exception during login");
+      close();
+      return;
+    }
+
+    // Notify the Activity that the client has connected
+    mHandler.obtainMessage(AirHockeyActivity.STATE_CONNECTED).sendToTarget();
+
+    if (DEBUG)
+      Log.v(TAG, "Requesting a puck from the server...");
+
+    // Request a puck from the server
+    write(new String("P," + mUser).getBytes());
 
     // Loop forever, read new messages from the network, and forward them to
     // the Activity.
+    byte[] buf = new byte[256];
     while (true) {
+      DatagramPacket packet = new DatagramPacket(buf, buf.length);
       try {
         if (DEBUG) {
           Log.v(TAG, "Waiting for server's next incoming message...");
         }
-
-        String rawMsg = mIn.readLine();
+        mSocket.receive(packet);
+        byte[] bytes = packet.getData();
+        int offset = packet.getOffset();
+        int length = packet.getLength();
+        String readMsg = new String(bytes, offset, length);
 
         if (DEBUG) {
-          Log.v(TAG, "Message received in NetworkThread: " + rawMsg);
+          Log.v(TAG, "Message received in NetworkThread: " + readMsg);
         }
-
-        if (rawMsg == null) {
-          Log.e(TAG, "WARNING!! MSG IS NULL!");
-          close();
-          return;
-        }
-        if (rawMsg.charAt(rawMsg.length() - 1) != '\n') {
-          Log.e(TAG,
-              "WARNING!! MSG IS NON-NULL AND DOES NOT END WITH NEW LINE!");
-          close();
-          return;
-        }
-
-        String readMsg = rawMsg.substring(rawMsg.length() - 1);
 
         // Data to pass to the handler
         Object msg;
@@ -100,7 +109,6 @@ public class NetworkThread extends Thread {
           float pps = Float.parseFloat(args[3]);
           float radius = Float.parseFloat(args[4]);
           String colorText = args[5];
-          String user = args[6];
 
           Puck.Color color;
           if (colorText.equals("blue")) {
@@ -113,12 +121,19 @@ public class NetworkThread extends Thread {
             color = Puck.Color.Purple;
           } else if (colorText.equals("red")) {
             color = Puck.Color.Red;
-          } else { // if (colorText.equals("yellow")) {
+          } else { //if (colorText.equals("yellow")) {
             color = Puck.Color.Yellow;
           }
 
-          msg = Utils.toBall(mRegion, puckId, inEdge, xEntryPercent,
-              yEntryPercent, angle, pps, radius, color, user);
+          // TODO: uncomment this if we revert back!
+          //msg = Utils.toBall(mRegion, puckId, inEdge, xEntryPercent,
+          //    yEntryPercent, angle, pps, radius, color);
+
+          // mHandler.obtainMessage(AirHockeyActivity.MESSAGE_TOAST).sendToTarget();
+          // Message message =
+          // mHandler.obtainMessage(AirHockeyActivity.MESSAGE_READ, arg1, -1,
+          // msg);
+          // mHandler.sendMessageDelayed(message, 1000);
 
         } else if (msgType.equals("XOK")) {
           // "XOK,puckId"
@@ -157,8 +172,7 @@ public class NetworkThread extends Thread {
         }
 
         mHandler.obtainMessage(AirHockeyActivity.MESSAGE_READ, arg1, -1, msg)
-            .sendToTarget();
-
+        .sendToTarget();
       } catch (IOException e) {
         Log.e(TAG, "Client failed to read from server!");
         close();
@@ -167,45 +181,23 @@ public class NetworkThread extends Thread {
     }
   }
 
-  public void write(String writeMsg) {
-    if (DEBUG)
-      Log.v(TAG, "Writing message to server: " + writeMsg);
-    if (mOut != null) {
-      mOut.println(writeMsg);
-      if (mOut.checkError()) {
-        Log.e(TAG,
-            "Client failed to write message because PrintWriter threw an"
-                + "IOException!");
-      }
-    } else {
-      Log.e(TAG, "Client failed to write message because PrintWriter was null!");
+  public void write(byte[] buf) {
+    try {
+      if (DEBUG)
+        Log.v(TAG, "Writing message to server: " + new String(buf));
+      mSocket.send(new DatagramPacket(buf, buf.length, mServerAddr, mPort));
+    } catch (IOException e) {
+      Log.e(TAG, "Client failed to write message: "
+          + new String(buf, 0, buf.length));
     }
   }
 
   public void close() {
     if (DEBUG)
       Log.v(TAG, "Closing NetworkThread...");
-    Message closeMsg = mHandler.obtainMessage(AirHockeyActivity.STATE_NONE);
-    mHandler.sendMessageAtFrontOfQueue(closeMsg);
+    mHandler.obtainMessage(AirHockeyActivity.STATE_NONE).sendToTarget();
     if (mSocket != null) {
-      try {
-        mSocket.close();
-      } catch (IOException e) {
-        // Ignore exception
-      }
-      mSocket = null;
-    }
-    if (mIn != null) {
-      try {
-        mIn.close();
-      } catch (IOException e) {
-        // Ignore exception
-      }
-      mIn = null;
-    }
-    if (mOut != null) {
-      mOut.close();
-      mOut = null;
+      mSocket.close();
     }
   }
 }

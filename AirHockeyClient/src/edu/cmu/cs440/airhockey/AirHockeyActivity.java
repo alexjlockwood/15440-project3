@@ -1,14 +1,16 @@
 package edu.cmu.cs440.airhockey;
 
+import java.io.BufferedReader;
+import java.io.PrintWriter;
+import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import android.content.Context;
+import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
-import android.os.Vibrator;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.Window;
@@ -21,6 +23,7 @@ import edu.cmu.cs440.airhockey.LoginTask.LoginCallback;
  * The activity for the game. Listens for callbacks from the game engine, and
  * responds appropriately.
  */
+@SuppressLint("HandlerLeak")
 public class AirHockeyActivity extends FragmentActivity implements
     AirHockeyView.BallEngineCallBack, NewGameCallback, LoginCallback {
 
@@ -29,11 +32,8 @@ public class AirHockeyActivity extends FragmentActivity implements
 
   private static final int PREVIEW_NUM_BALLS = 0;
   private static final int NEW_GAME_NUM_BALLS = 0;
-  private static final int COLLISION_VIBRATE_MILLIS = 50;
 
   private AirHockeyView mBallsView;
-
-  private Vibrator mVibrator;
 
   private LoginDialogFragment mDialog;
   private LoginTask mLoginTask;
@@ -63,9 +63,7 @@ public class AirHockeyActivity extends FragmentActivity implements
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     mBallsView = (AirHockeyView) findViewById(R.id.ballsView);
     mBallsView.setCallback(this);
-
     // mState = STATE_NONE;
-    mVibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
   }
 
   /** {@inheritDoc} */
@@ -116,7 +114,8 @@ public class AirHockeyActivity extends FragmentActivity implements
       mPort = port;
       mPuckColor = color;
       mBallsView.setDefaultPuckColor(mPuckColor);
-      mLoginTask = new LoginTask(this, this);
+      mBallsView.setUser(mUser);
+      mLoginTask = new LoginTask(this, this, user);
       mLoginTask.execute(mUser, mHost, mPort);
     } else {
       Toast.makeText(this, "No internet connection found.", Toast.LENGTH_SHORT)
@@ -125,38 +124,13 @@ public class AirHockeyActivity extends FragmentActivity implements
   }
 
   @Override
-  public void onLoginComplete(String result) {
-    if (result == null) {
-      if (DEBUG)
-        Log.v(TAG, "Client did not receive server response!");
-      Toast.makeText(this, "Could not connect! Please try again.",
-          Toast.LENGTH_SHORT).show();
-      return;
-    }
+  public void onLoginComplete(Socket socket, BufferedReader in, PrintWriter out) {
+    mDialog.dismiss();
+    PuckRegion region = mBallsView.getEngine().getRegion();
+    startGame();
+    mNetworkThread = new NetworkThread(region, mHandler, socket, in, out);
+    mNetworkThread.start();
 
-    int index = result.indexOf(",");
-    if (result.equals("JNO")) {
-      if (DEBUG)
-        Log.v(TAG, "Client failed to join!");
-      Toast.makeText(this, "Could not connect! Please try again.",
-          Toast.LENGTH_SHORT).show();
-    }
-
-    else if (result.equals("DUP")) {
-      if (DEBUG)
-        Log.v(TAG, "Client failed to join!");
-      Toast.makeText(this, "User already connected!", Toast.LENGTH_SHORT)
-          .show();
-    }
-
-    else if (index >= 0 && result.substring(0, index).equals("JOK")) {
-      if (DEBUG)
-        Log.v(TAG, "Client joined successfully!");
-      mDialog.dismiss();
-      PuckRegion region = mBallsView.getEngine().getRegion();
-      mNetworkThread = new NetworkThread(region, mHandler, mHost, mPort, mUser);
-      mNetworkThread.start();
-    }
   }
 
   private void startGame() {
@@ -195,8 +169,8 @@ public class AirHockeyActivity extends FragmentActivity implements
     }
     if (mNetworkThread != null) {
       final PuckRegion region = mBallsView.getEngine().getRegion();
-      final byte[] data = Utils.toBytes(region, ball, exitEdge);
-      mExecutor.execute(new WriteRunnable(data));
+      final String writeMsg = Utils.toString(region, ball, exitEdge);
+      mExecutor.execute(new WriteRunnable(writeMsg));
     }
   }
 
@@ -205,15 +179,15 @@ public class AirHockeyActivity extends FragmentActivity implements
   private ExecutorService mExecutor = Executors.newSingleThreadExecutor();
 
   private class WriteRunnable implements Runnable {
-    private byte[] mData;
+    private String mMsg;
 
-    public WriteRunnable(byte[] data) {
-      mData = data;
+    public WriteRunnable(String msg) {
+      mMsg = msg;
     }
 
     @Override
     public void run() {
-      mNetworkThread.write(mData);
+      mNetworkThread.write(mMsg);
     }
   }
 
@@ -229,18 +203,39 @@ public class AirHockeyActivity extends FragmentActivity implements
             Log.v(TAG, "MESSAGE_READ received.");
           switch (msg.arg1) {
             case NetworkThread.IP:
+              if (DEBUG) {
+                Log.v(TAG, "IP type message read.");
+              }
               Puck incomingBall = (Puck) msg.obj;
               incomingBall.setRegion(mBallsView.getEngine().getRegion());
               incomingBall.setNow(SystemClock.elapsedRealtime());
               mBallsView.getEngine().addIncomingPuck(incomingBall);
               break;
             case NetworkThread.POK:
+              if (DEBUG) {
+                Log.v(TAG, "POK type message read.");
+              }
               Puck newBall = mBallsView.randomIncomingPuck((Integer) msg.obj);
               newBall.setColor(mPuckColor);
               newBall.setRegion(mBallsView.getEngine().getRegion());
               mBallsView.getEngine().addIncomingPuck(newBall);
               if (DEBUG) {
                 Log.v(TAG, "Adding random incoming puck: " + newBall.toString());
+              }
+              break;
+            case NetworkThread.PNO:
+              if (DEBUG) {
+                Log.v(TAG, "PNO type message read.");
+              }
+              break;
+            case NetworkThread.XOK:
+              if (DEBUG) {
+                Log.v(TAG, "XOK type message read.");
+              }
+              break;
+            case NetworkThread.XNO:
+              if (DEBUG) {
+                Log.v(TAG, "XNO type message read.");
               }
               break;
           }
@@ -250,7 +245,6 @@ public class AirHockeyActivity extends FragmentActivity implements
         case STATE_NONE:
           if (DEBUG)
             Log.v(TAG, "STATE_NONE received.");
-          // mState = STATE_NONE;
           Toast.makeText(AirHockeyActivity.this, "Connection lost.",
               Toast.LENGTH_SHORT).show();
           resetGame();
@@ -258,13 +252,10 @@ public class AirHockeyActivity extends FragmentActivity implements
         case STATE_CONNECTED:
           if (DEBUG)
             Log.v(TAG, "STATE_CONNECTED received.");
-          // mState = STATE_CONNECTED;
-          startGame();
           break;
         case MESSAGE_TOAST:
           if (DEBUG)
             Log.v(TAG, "STATE_TOAST received.");
-          // mVibrator.vibrate(50l);
           break;
       }
     }
