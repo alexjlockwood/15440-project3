@@ -47,6 +47,8 @@ public class NetworkThread extends Thread {
     try {
       mServerAddr = InetAddress.getByName(mHostname);
       mSocket = new DatagramSocket(mPort);
+      Log.v(TAG, "Receive buffer size: "+mSocket.getReceiveBufferSize());
+      Log.v(TAG, "Send buffer size: "+mSocket.getSendBufferSize());
     } catch (UnknownHostException e) {
       Log.e(TAG, "Could not resolve hostname: " + mHostname);
       close();
@@ -132,39 +134,32 @@ public class NetworkThread extends Thread {
           // msg);
           // mHandler.sendMessageDelayed(message, 1000);
 
-          mHandler.obtainMessage(AirHockeyActivity.MESSAGE_READ, arg1, -1, msg)
-              .sendToTarget();
-
         } else if (msgType.equals("XOK")) {
           // "XOK,puckId"
           arg1 = XOK;
           msg = Integer.parseInt(fields[1]);
           // Do stuff
-          mHandler.obtainMessage(AirHockeyActivity.MESSAGE_READ, arg1, -1, msg)
-              .sendToTarget();
         } else if (msgType.equals("XNO")) {
           // "XNO,puckId"
           arg1 = XNO;
           msg = Integer.parseInt(fields[1]);
-          mHandler.obtainMessage(AirHockeyActivity.MESSAGE_READ, arg1, -1, msg)
-              .sendToTarget();
         } else if (msgType.equals("POK")) {
           // "POK,puckId"
           arg1 = POK;
           msg = Integer.parseInt(fields[1]);
-          mHandler.obtainMessage(AirHockeyActivity.MESSAGE_READ, arg1, -1, msg)
-              .sendToTarget();
         } else if (msgType.equals("PNO")) {
           // "PNO"
           arg1 = PNO;
           msg = null;
-          mHandler.obtainMessage(AirHockeyActivity.MESSAGE_READ, arg1, -1, msg)
-              .sendToTarget();
+
         } else {
           // Shouldn't happen
           arg1 = -1;
           msg = null;
         }
+
+        mHandler.obtainMessage(AirHockeyActivity.MESSAGE_READ, arg1, -1, msg)
+        .sendToTarget();
       } catch (IOException e) {
         Log.e(TAG, "Client failed to read from server!");
         close();

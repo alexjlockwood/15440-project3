@@ -107,4 +107,19 @@ public class Utils {
     NetworkInfo ni = cm.getActiveNetworkInfo();
     return (ni != null && ni.isAvailable() && ni.isConnected());
   }
+
+  public static String exitEdgeToStr(int exitEdge) {
+    switch (exitEdge) {
+      case PuckRegion.LEFT:
+        return "left";
+      case PuckRegion.RIGHT:
+        return "right";
+      case PuckRegion.TOP:
+        return "top";
+      case PuckRegion.BOTTOM:
+        return "bottom";
+      default:
+        return "n/a";
+    }
+  }
 }

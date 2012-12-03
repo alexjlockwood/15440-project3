@@ -2,8 +2,6 @@ package edu.cmu.cs440.airhockey;
 
 import java.util.Locale;
 
-import android.util.Log;
-
 /**
  * A ball has a current location, a trajectory angle, a speed in pixels per
  * second, and a last update time. It is capable of updating itself based on its
@@ -158,17 +156,17 @@ public class Puck extends Shape {
     if (region.isGoal()) {
       if (mX < region.getLeft()) {
         mX = region.getLeft();
-        //bounceOffLeft();
+        // bounceOffLeft();
       } else if (region.getRight() < mX) {
         mX = region.getRight();
-        //bounceOffRight();
+        // bounceOffRight();
       }
       if (mY < region.getTop()) {
         mY = region.getTop();
-        //bounceOffTop();
+        // bounceOffTop();
       } else if (region.getBottom() < mY) {
         mY = region.getBottom();
-        //bounceOffBottom();
+        // bounceOffBottom();
       }
     }
     mRegion = region;
@@ -322,8 +320,9 @@ public class Puck extends Shape {
   @Override
   public String toString() {
     return String.format(Locale.US,
-        "Ball(id=%d, x=%f, y=%f, angle=%f, color=%s, exitEdge=%d)", mId, mX, mY,
-        Math.toDegrees(mDirection), Utils.colorToStr(mColor), mHasExited);
+        "Ball(id=%d, x=%f, y=%f, angle=%f, speed=%f, color=%s, exitEdge=%s)",
+        mId, mX, mY, Math.toDegrees(mDirection), (float) mPixelsPerSecond,
+        Utils.colorToStr(mColor), Utils.exitEdgeToStr(mHasExited));
   }
 
   /**
@@ -354,10 +353,11 @@ public class Puck extends Shape {
       if (mY < 0) {
         // throw new IllegalStateException("Y must be stet");
       }
-      if (mAngle < 0) {
-        if (DEBUG) Log.v(TAG, "Adjusting angle from " + mAngle + " to " + mAngle + 2*Math.PI);
-        mAngle += 2*Math.PI;
-      }
+      // if (mAngle < 0) {
+      // if (DEBUG) Log.v(TAG, "Adjusting angle from " + mAngle + " to " +
+      // mAngle + 2*Math.PI);
+      // mAngle += 2*Math.PI;
+      // }
       if (mAngle > 2 * Math.PI) {
         throw new IllegalStateException("angle must be less that 2Pi");
       }
@@ -410,11 +410,6 @@ public class Puck extends Shape {
   }
 
   public enum Color {
-    Blue,
-    Green,
-    Orange,
-    Purple,
-    Red,
-    Yellow,
+    Blue, Green, Orange, Purple, Red, Yellow,
   }
 }
