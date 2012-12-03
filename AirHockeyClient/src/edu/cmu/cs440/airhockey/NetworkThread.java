@@ -136,19 +136,31 @@ public class NetworkThread extends Thread {
 
         } else if (msgType.equals("XOK")) {
           // "XOK,puckId"
+          if (DEBUG) {
+            Log.v(TAG, "XOK received from server.");
+          }
           arg1 = XOK;
           msg = Integer.parseInt(fields[1]);
           // Do stuff
         } else if (msgType.equals("XNO")) {
           // "XNO,puckId"
+          if (DEBUG) {
+            Log.v(TAG, "XNO received from server.");
+          }
           arg1 = XNO;
           msg = Integer.parseInt(fields[1]);
         } else if (msgType.equals("POK")) {
           // "POK,puckId"
+          if (DEBUG) {
+            Log.v(TAG, "POK received from server.");
+          }
           arg1 = POK;
           msg = Integer.parseInt(fields[1]);
         } else if (msgType.equals("PNO")) {
           // "PNO"
+          if (DEBUG) {
+            Log.v(TAG, "PNO received from server.");
+          }
           arg1 = PNO;
           msg = null;
 

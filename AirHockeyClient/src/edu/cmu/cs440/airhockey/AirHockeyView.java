@@ -497,8 +497,12 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
         break;
     }
 
-    return new Puck.Builder().setX(x).setY(y).setAngle(angle)
+    Puck incomingPuck = new Puck.Builder().setX(x).setY(y).setAngle(angle)
         .setRadiusPixels(radius).setPixelsPerSecond(pps).setId(puckId)
         .setNow(SystemClock.elapsedRealtime()).create();
+    if (DEBUG)
+      Log.v(TAG,
+          "Adding random incoming puck to screen: " + incomingPuck.toString());
+    return incomingPuck;
   }
 }
