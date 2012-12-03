@@ -25,8 +25,8 @@ public class LoginTask extends AsyncTask<String, Void, String> {
   private Context mCtx;
   private LoginCallback mCallback;
   private Socket mSocket;
-  private PrintWriter out;
-  private BufferedReader in;
+  private BufferedReader mIn;
+  private PrintWriter mOut;
   private InetAddress mServerAddr;
   private ProgressDialog mProgress;
   private String mUser;
@@ -39,7 +39,8 @@ public class LoginTask extends AsyncTask<String, Void, String> {
 
   @Override
   protected void onPreExecute() {
-    mProgress = ProgressDialog.show(mCtx, "", "Connecting...", true);
+    String connecting = mCtx.getString(R.string.progress_connecting);
+    mProgress = ProgressDialog.show(mCtx, "", connecting, true);
     mProgress.setOnCancelListener(new DialogInterface.OnCancelListener() {
       @Override
       public void onCancel(DialogInterface dialog) {
@@ -71,8 +72,8 @@ public class LoginTask extends AsyncTask<String, Void, String> {
     try {
       mServerAddr = InetAddress.getByName(host);
       mSocket = new Socket(mServerAddr, port);
-      out = new PrintWriter(mSocket.getOutputStream(), true);
-      in = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
+      mOut = new PrintWriter(mSocket.getOutputStream(), true);
+      mIn = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
     } catch (SocketException e) {
       Log.e(TAG, "SocketException during login");
       close();
@@ -93,9 +94,9 @@ public class LoginTask extends AsyncTask<String, Void, String> {
     }
 
     byte[] joinMsg = String.format(Locale.US, "J,%s", user).getBytes();
-    out.println(joinMsg);
+    mOut.println(joinMsg);
 
-    if (out.checkError()) {
+    if (mOut.checkError()) {
       Log.e(TAG, "Client failed to write message because PrintWriter threw an"
           + "IOException!");
       close();
@@ -115,7 +116,7 @@ public class LoginTask extends AsyncTask<String, Void, String> {
     // for the server to respond.
     String result = null;
     try {
-      result = in.readLine();
+      result = mIn.readLine();
     } catch (IOException e) {
       Log.e(TAG, "IOException while waiting for server's join response.");
       close();
@@ -142,9 +143,9 @@ public class LoginTask extends AsyncTask<String, Void, String> {
 
     // Request a puck from the server
     String puckMsg = String.format(Locale.US, "P,%s\n", mUser);
-    out.println(puckMsg);
+    mOut.println(puckMsg);
 
-    if (out.checkError()) {
+    if (mOut.checkError()) {
       Log.e(TAG, "Client failed to write message because PrintWriter threw an"
           + "IOException!");
       close();
@@ -155,7 +156,7 @@ public class LoginTask extends AsyncTask<String, Void, String> {
     // for the server to respond.
     String puckResult = null;
     try {
-      puckResult = in.readLine();
+      puckResult = mIn.readLine();
     } catch (IOException e) {
       Log.e(TAG, "IOException while waiting for server's join response.");
       close();
@@ -167,12 +168,12 @@ public class LoginTask extends AsyncTask<String, Void, String> {
       return null;
     }
 
-    //try {
-    //  in.close();
-    //} catch (IOException e) {
-    //  // Ignore exception
-    //}
-    //out.close();
+    // try {
+    // in.close();
+    // } catch (IOException e) {
+    // // Ignore exception
+    // }
+    // out.close();
 
     try {
       // Sleep for a little bit just so it looks like we are doing
@@ -199,17 +200,17 @@ public class LoginTask extends AsyncTask<String, Void, String> {
       }
       mSocket = null;
     }
-    if (in != null) {
+    if (mIn != null) {
       try {
-        in.close();
+        mIn.close();
       } catch (IOException e) {
         // Ignore exception
       }
-      in = null;
+      mIn = null;
     }
-    if (out != null) {
-      out.close();
-      out = null;
+    if (mOut != null) {
+      mOut.close();
+      mOut = null;
     }
   }
 
@@ -229,13 +230,12 @@ public class LoginTask extends AsyncTask<String, Void, String> {
       return;
     }
 
-
     if (result.equals("JNO")) {
       if (DEBUG) {
         Log.v(TAG, "Client failed to join!");
       }
-      Toast.makeText(mCtx, "Could not connect! Please try again.",
-          Toast.LENGTH_SHORT).show();
+      Toast.makeText(mCtx, R.string.could_not_connect, Toast.LENGTH_SHORT)
+          .show();
       return;
     }
 
@@ -243,7 +243,7 @@ public class LoginTask extends AsyncTask<String, Void, String> {
       if (DEBUG) {
         Log.v(TAG, "Client failed to join!");
       }
-      Toast.makeText(mCtx, "User already connected!", Toast.LENGTH_SHORT)
+      Toast.makeText(mCtx, R.string.user_already_connected, Toast.LENGTH_SHORT)
           .show();
       return;
     }
@@ -260,7 +260,7 @@ public class LoginTask extends AsyncTask<String, Void, String> {
         if (result != null)
           Log.v(TAG, "Received server response: " + result);
       }
-      mCallback.onLoginComplete(mSocket, in, out);
+      mCallback.onLoginComplete(mSocket, mIn, mOut);
     }
   }
 

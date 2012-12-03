@@ -31,7 +31,6 @@ public class Utils {
     b = b.append(ball.getRadiusPixels()).append(";");
     b = b.append(colorText).append(";");
     b = b.append(ball.getLastUser());
-    b = b.append("\n");
 
     return b.toString();
   }

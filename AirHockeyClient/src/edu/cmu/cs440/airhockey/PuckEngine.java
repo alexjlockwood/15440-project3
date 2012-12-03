@@ -14,7 +14,9 @@ import java.util.Iterator;
  */
 public class PuckEngine {
 
+  @SuppressWarnings("unused")
   private static final String TAG = "15440_PuckEngine";
+  @SuppressWarnings("unused")
   private static final boolean DEBUG = true;
 
   /**
@@ -29,7 +31,7 @@ public class PuckEngine {
   private final float mMinY;
   private final float mMaxY;
 
-  private float mBallRadius;
+  //private float mBallRadius;
 
   private final float mGoalMinX;
   private final float mGoalMaxX;
@@ -41,7 +43,7 @@ public class PuckEngine {
     mMaxX = maxX;
     mMinY = minY;
     mMaxY = maxY;
-    mBallRadius = radius;
+    //mBallRadius = radius;
 
     final float regionWidth = maxX - minX;
     final float regionHeight = maxY - minY;

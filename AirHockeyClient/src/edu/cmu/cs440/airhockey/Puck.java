@@ -14,7 +14,9 @@ import android.text.TextUtils;
  */
 public class Puck extends Shape {
 
+  @SuppressWarnings("unused")
   private static final String TAG = "15440_Puck";
+  @SuppressWarnings("unused")
   private static final boolean DEBUG = true;
 
   public static final float MIN_SPEED = 100f;

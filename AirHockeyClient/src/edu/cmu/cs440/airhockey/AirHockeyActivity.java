@@ -118,7 +118,7 @@ public class AirHockeyActivity extends FragmentActivity implements
       mLoginTask = new LoginTask(this, this, user);
       mLoginTask.execute(mUser, mHost, mPort);
     } else {
-      Toast.makeText(this, "No internet connection found.", Toast.LENGTH_SHORT)
+      Toast.makeText(this, R.string.no_connection_found, Toast.LENGTH_SHORT)
           .show();
     }
   }
@@ -245,7 +245,7 @@ public class AirHockeyActivity extends FragmentActivity implements
         case STATE_NONE:
           if (DEBUG)
             Log.v(TAG, "STATE_NONE received.");
-          Toast.makeText(AirHockeyActivity.this, "Connection lost.",
+          Toast.makeText(AirHockeyActivity.this, R.string.connection_lost,
               Toast.LENGTH_SHORT).show();
           resetGame();
           break;

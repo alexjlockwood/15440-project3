@@ -11,7 +11,9 @@ import java.util.List;
  */
 public class PuckRegion extends Shape {
 
+  @SuppressWarnings("unused")
   private static final String TAG = "15440_PuckRegion";
+  @SuppressWarnings("unused")
   private static final boolean DEBUG = true;
 
   public static final int LEFT = 0;
