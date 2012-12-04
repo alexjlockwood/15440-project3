@@ -10,7 +10,7 @@
     <!-- AirHockeyActivity -->
     <string name="no_connection_found">No internet connection found.</string>
     <string name="connection_lost">Connection lost.</string>
-    <string name="press_back_to_exit_warning">Press again to exit!</string>
+    <string name="press_back_to_exit_warning">Press again to disconnect!</string>
 
     <!-- LoginTask -->
     <string name="progress_connecting">Connecting…</string>

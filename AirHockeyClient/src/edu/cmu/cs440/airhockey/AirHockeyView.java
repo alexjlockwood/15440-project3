@@ -12,6 +12,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.os.SystemClock;
+import android.os.Vibrator;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -32,6 +33,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
    * Directs callback events to the {@link AirHockeyActivity}.
    */
   private BallEngineCallBack mCallback;
+  private Vibrator mVibrator;
   private Puck.Color mPuckColor;
   private final Paint mPaint;
   private PuckEngine mEngine;
@@ -118,6 +120,10 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
     mCallback = callback;
   }
 
+  public void setVibrator(Vibrator vibrator) {
+    mVibrator = vibrator;
+  }
+
   public void setUser(String user) {
     mUser = user;
   }
@@ -173,10 +179,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
 
   @Override
   public boolean onTouchEvent(MotionEvent motionEvent) {
-    /*
-     * if (mMode == Mode.PausedByUser) { // touching unpauses when the game was
-     * paused by the user. setMode(Mode.Bouncing); return true; } else
-     */if (mMode == Mode.Paused) {
+    if (mMode == Mode.Paused) {
       return false;
     }
 
@@ -188,6 +191,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
       case MotionEvent.ACTION_DOWN:
         Puck ball = removePuckInBounds(x, y);
         if (ball != null) {
+          checkSecret(x, y);
           mPressedBall = ball;
           mPressedBall.setCoords(x, y);
           mPressedBall.setColor(mPuckColor);
@@ -200,6 +204,19 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
         return true;
       case MotionEvent.ACTION_MOVE:
         if (mPressedBall != null) {
+          if (checkSecret(x, y)) {
+            resetSecret();
+            long timeSinceSecs = (now - mLastUhoh) / 1000;
+            Log.v(TAG, "time since secs: " + timeSinceSecs);
+            if (mLastUhoh == -1 || timeSinceSecs >= UHOH_WAIT_SECS) {
+              mCallback.uhoh("Uh oh...");
+              mLastUhoh = now;
+              resetSecret();
+            } else {
+              long waitSecs = UHOH_WAIT_SECS - timeSinceSecs + 1;
+              mCallback.uhoh("Try again in " + waitSecs + " seconds.");
+            }
+          }
           mLastPressedX = mPressedBall.getX();
           mLastPressedY = mPressedBall.getY();
           mPressedBall.setCoords(x, y);
@@ -208,6 +225,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
         }
         return true;
       case MotionEvent.ACTION_UP:
+        resetSecret();
         if (mPressedBall != null) {
           double dx = x - mLastPressedX;
           double dy = y - mLastPressedY;
@@ -235,6 +253,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
           mPressedBall = null;
           invalidate();
         }
+        resetSecret();
         return true;
     }
     return super.onTouchEvent(motionEvent);
@@ -428,6 +447,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
     if (DEBUG)
       Log.v(TAG, "A ball has entered the goal region: " + ball.toString());
     ball.setRadiusPixels(mBallRadiusSmall);
+    // TODO: notify player when goal is scored!
   }
 
   /**
@@ -444,6 +464,8 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
      * Captures an event when the ball is exiting the region.
      */
     void onBallExitsRegion(long when, Puck ball, int exitEdge);
+
+    void uhoh(String msg);
   }
 
   /**
@@ -464,35 +486,34 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
 
   // TODO: make sure the angles are correct here!
 
-  public Puck randomIncomingPuck(long now, int puckId) {
+  public Puck randomIncomingPuck(long now, int puckId, int enterEdge) {
     float x, y;
     double angle;
-    // TODO: add a little more randomness here! Fix this when confident that
-    // TCP is working as it should.
+    float widthOffset = (float) (Math.random() * (0.75 * getWidth()) - (0.375 * getWidth()));
+    float heightOffset = (float) (Math.random() * (0.75 * getHeight()) - (0.375 * getHeight()));
     double angleOffset = Math.random() * (0.5 * Math.PI) - (0.25 * Math.PI);
     float pps = BALL_START_SPEED;
     float radius = mBallRadiusBig;
 
-    int enterEdge = (int) (Math.random() * 4);
     switch (enterEdge) {
       case PuckRegion.LEFT: // 0
         x = -mBallRadiusBig + 1;
-        y = (float) (getHeight() / 2);
+        y = (float) (getHeight() / 2) + heightOffset;
         angle = 0 + angleOffset;
         break;
       case PuckRegion.TOP: // 1
-        x = (float) (getWidth() / 2);
+        x = (float) (getWidth() / 2) + widthOffset;
         y = -mBallRadiusBig + 1;
-        angle = 1.5 * Math.PI + angleOffset;
+        angle = 0.5 * Math.PI + angleOffset;
         break;
       case PuckRegion.BOTTOM: // 2
-        x = (float) (getWidth() / 2);
+        x = (float) (getWidth() / 2) + widthOffset;
         y = getHeight() + mBallRadiusBig - 1;
-        angle = 0.5 * Math.PI + angleOffset;
+        angle = 1.5 * Math.PI + angleOffset;
         break;
       default: // 3
         x = getWidth() + mBallRadiusBig - 1;
-        y = (float) (getHeight() / 2);
+        y = (float) (getHeight() / 2) + heightOffset;
         angle = Math.PI + angleOffset;
         break;
     }
@@ -506,5 +527,57 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
           "Adding random incoming puck to screen: " + incomingPuck.toString());
 
     return incomingPuck;
+  }
+
+  // Secret stuff :)
+  private static final int UHOH_WAIT_SECS = 60;
+  private static final float UHOH_WIDTH_RATIO = 0.125f;
+  private static final float UHOH_HEIGHT_RATIO = 0.250f;
+  private static final long UHOH_VIBRATE_TIME = 20l;
+  private long mLastUhoh = -1;
+  private boolean mTopLeftSecret = false;
+  private boolean mTopRightSecret = false;
+  private boolean mBottomLeftSecret = false;
+  private boolean mBottomRightSecret = false;
+
+  private void resetSecret() {
+    mTopLeftSecret = false;
+    mTopRightSecret = false;
+    mBottomLeftSecret = false;
+    mBottomRightSecret = false;
+  }
+
+  private boolean checkSecret(float x, float y) {
+    if (0 <= x && x <= getWidth() * UHOH_WIDTH_RATIO) {
+      if (0 <= y && y <= getHeight() * UHOH_HEIGHT_RATIO) {
+        if (!mTopLeftSecret) {
+          mVibrator.vibrate(UHOH_VIBRATE_TIME);
+        }
+        mTopLeftSecret = true;
+        return mTopRightSecret && mBottomLeftSecret && mBottomRightSecret;
+      } else if (getHeight() * (1 - UHOH_HEIGHT_RATIO) <= y && y <= getHeight()) {
+        if (!mBottomLeftSecret) {
+          mVibrator.vibrate(UHOH_VIBRATE_TIME);
+        }
+        mBottomLeftSecret = true;
+        return mTopLeftSecret && mTopRightSecret && mBottomRightSecret;
+      }
+    }
+    if (getWidth() * (1 - UHOH_WIDTH_RATIO) <= x && x <= getWidth()) {
+      if (0 <= y && y <= getHeight() * UHOH_HEIGHT_RATIO) {
+        if (!mTopRightSecret) {
+          mVibrator.vibrate(UHOH_VIBRATE_TIME);
+        }
+        mTopRightSecret = true;
+        return mTopLeftSecret && mBottomLeftSecret && mBottomRightSecret;
+      } else if (getHeight() * (1 - UHOH_HEIGHT_RATIO) <= y && y <= getHeight()) {
+        if (!mBottomRightSecret) {
+          mVibrator.vibrate(UHOH_VIBRATE_TIME);
+        }
+        mBottomRightSecret = true;
+        return mTopLeftSecret && mTopRightSecret && mBottomLeftSecret;
+      }
+    }
+    return false;
   }
 }

@@ -41,15 +41,6 @@ public class NetworkThread extends Thread {
     if (DEBUG)
       Log.v(TAG, "Starting NetworkThread...");
 
-    //try {
-    //  out = new PrintWriter(mSocket.getOutputStream(), true);
-    //  in = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
-    //} catch (IOException e) {
-    //  Log.e(TAG, "Client failed to get input and output streams!");
-    //  close();
-    //  return;
-    //}
-
     // Loop forever, read new messages from the network, and forward them to
     // the Activity.
     while (true) {
@@ -58,25 +49,18 @@ public class NetworkThread extends Thread {
           Log.v(TAG, "Waiting for server's next incoming message...");
         }
 
-        String rawMsg = mIn.readLine();
+        String readMsg = mIn.readLine();
 
         if (DEBUG) {
-          Log.v(TAG, "Message received in NetworkThread: " + rawMsg);
+          Log.v(TAG, "Message received in NetworkThread: " + readMsg);
         }
 
-        if (rawMsg == null) {
-          Log.e(TAG, "WARNING!! MSG IS NULL!");
+        if (readMsg == null) {
+          // TODO: pause the game, and retry the connection?????????????????
+          Log.e(TAG, "Message was null! THIS SHOULDNT HAPPEN I THINK?!");
           close();
           return;
         }
-        if (rawMsg.charAt(rawMsg.length() - 1) != '\n') {
-          Log.e(TAG,
-              "WARNING!! MSG IS NON-NULL AND DOES NOT END WITH NEW LINE!");
-          close();
-          return;
-        }
-
-        String readMsg = rawMsg.substring(rawMsg.length() - 1);
 
         // Data to pass to the handler
         Object msg;
@@ -107,6 +91,8 @@ public class NetworkThread extends Thread {
             color = Puck.Color.Blue;
           } else if (colorText.equals("green")) {
             color = Puck.Color.Green;
+          } else if (colorText.equals("lightblue")) {
+            color = Puck.Color.LightBlue;
           } else if (colorText.equals("orange")) {
             color = Puck.Color.Orange;
           } else if (colorText.equals("purple")) {
@@ -160,6 +146,7 @@ public class NetworkThread extends Thread {
             .sendToTarget();
 
       } catch (IOException e) {
+        // TODO: pause the game, and retry the connection!
         Log.e(TAG, "Client failed to read from server!");
         close();
         return;
@@ -185,8 +172,10 @@ public class NetworkThread extends Thread {
   public void close() {
     if (DEBUG)
       Log.v(TAG, "Closing NetworkThread...");
+
+    // TODO: send to front of queue?
     Message closeMsg = mHandler.obtainMessage(AirHockeyActivity.STATE_NONE);
-    mHandler.sendMessageAtFrontOfQueue(closeMsg);
+    mHandler.sendMessage(closeMsg);
     if (mSocket != null) {
       try {
         mSocket.close();

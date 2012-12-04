@@ -7,10 +7,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
+import android.os.Vibrator;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.Window;
@@ -33,27 +35,24 @@ public class AirHockeyActivity extends FragmentActivity implements
 
   private static final int PREVIEW_NUM_BALLS = 0;
   private static final int NEW_GAME_NUM_BALLS = 0;
+  private static final long UHOH_VIBRATE_MILLIS = 50;
 
   private AirHockeyView mBallsView;
-
   private LoginDialogFragment mDialog;
   private LoginTask mLoginTask;
   private NetworkThread mNetworkThread;
-
   private String mUser;
   private String mHost;
   private String mPort;
-
   private Puck.Color mPuckColor;
+
+  private Vibrator mVibrator;
 
   public static final int STATE_NONE = 0;
   public static final int STATE_CONNECTED = 1;
   public static final int MESSAGE_READ = 2;
   public static final int MESSAGE_WRITE = 3;
   public static final int MESSAGE_TOAST = 4;
-
-  // The client's current connection state
-  // private int mState = STATE_NONE;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -65,7 +64,8 @@ public class AirHockeyActivity extends FragmentActivity implements
     mBallsView = (AirHockeyView) findViewById(R.id.ballsView);
     mBallsView.setCallback(this);
     mBallsView.setMode(Mode.Paused);
-    // mState = STATE_NONE;
+    mVibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+    mBallsView.setVibrator(mVibrator);
   }
 
   /** {@inheritDoc} */
@@ -123,12 +123,19 @@ public class AirHockeyActivity extends FragmentActivity implements
   }
 
   @Override
-  public void onLoginComplete(Socket socket, BufferedReader in, PrintWriter out) {
-    mDialog.dismiss();
+  public void onLoginComplete(Socket socket, BufferedReader in,
+      PrintWriter out, int puckId) {
     PuckRegion region = mBallsView.getEngine().getRegion();
-    startGame();
     mNetworkThread = new NetworkThread(region, mHandler, socket, in, out);
     mNetworkThread.start();
+    mDialog.dismiss();
+    startGame();
+    int enterEdge = (int) (Math.random() * 4);
+    long now = SystemClock.elapsedRealtime();
+    Puck newBall = mBallsView.randomIncomingPuck(now, puckId, enterEdge);
+    newBall.setColor(mPuckColor);
+    newBall.setRegion(mBallsView.getEngine().getRegion());
+    mBallsView.getEngine().addIncomingPuck(newBall);
   }
 
   // TODO: handle server crashes! Don't reset until we know for sure we can't
@@ -146,10 +153,14 @@ public class AirHockeyActivity extends FragmentActivity implements
   private void resetGame() {
     if (DEBUG)
       Log.v(TAG, "Client game has ended...");
-    mBallsView.getEngine().reset(SystemClock.elapsedRealtime(),
-        PREVIEW_NUM_BALLS);
     mBallsView.setMode(AirHockeyView.Mode.Paused);
     showLoginDialog();
+    if (mNetworkThread != null) {
+      mNetworkThread.close();
+      mNetworkThread = null;
+    }
+    mBallsView.getEngine().reset(SystemClock.elapsedRealtime(),
+        PREVIEW_NUM_BALLS);
   }
 
   @Override
@@ -192,9 +203,27 @@ public class AirHockeyActivity extends FragmentActivity implements
     }
   }
 
-  // TODO: when a read/write fails, make sure that it is somehow brought to
-  // the front of the handler's message queue so that the client doesn't do
-  // a bunch of unnecessary work before realizing the connection has closed.
+  @Override
+  public void uhoh(String msg) {
+    Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+    if (msg.equals("Uh oh...")) {
+      mVibrator.vibrate(new long[] { 0l, UHOH_VIBRATE_MILLIS, 50l,
+          UHOH_VIBRATE_MILLIS, 50l, UHOH_VIBRATE_MILLIS }, -1);
+      mExecutor.execute(new Runnable() {
+        @Override
+        public void run() {
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException e) {
+          }
+          for (int i = 0; i < 10; i++) {
+            mExecutor.execute(new WriteRunnable("P," + mUser));
+          }
+        }
+      });
+    }
+  }
+
   private final Handler mHandler = new Handler() {
     @Override
     public void handleMessage(Message msg) {
@@ -216,9 +245,10 @@ public class AirHockeyActivity extends FragmentActivity implements
               if (DEBUG) {
                 Log.v(TAG, "POK type message read.");
               }
+              int enterEdge = (int) (Math.random() * 4);
               long now = SystemClock.elapsedRealtime();
               Puck newBall = mBallsView.randomIncomingPuck(now,
-                  (Integer) msg.obj);
+                  (Integer) msg.obj, enterEdge);
               newBall.setColor(mPuckColor);
               newBall.setRegion(mBallsView.getEngine().getRegion());
               mBallsView.getEngine().addIncomingPuck(newBall);
@@ -269,8 +299,11 @@ public class AirHockeyActivity extends FragmentActivity implements
 
   @Override
   public void onBackPressed() {
-    if (SystemClock.elapsedRealtime() - mLastBackPress < BACK_EXIT_WAIT) {
+    if (mBallsView.getMode() == Mode.Paused) {
+      // If the dialog is showing
       super.onBackPressed();
+    } else if (SystemClock.elapsedRealtime() - mLastBackPress < BACK_EXIT_WAIT) {
+      resetGame();
     } else {
       mLastBackPress = SystemClock.elapsedRealtime();
       Toast.makeText(this, R.string.press_back_to_exit_warning,

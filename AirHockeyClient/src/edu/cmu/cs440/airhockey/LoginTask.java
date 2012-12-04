@@ -17,7 +17,7 @@ import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.Toast;
 
-public class LoginTask extends AsyncTask<String, Void, String> {
+public class LoginTask extends AsyncTask<String, String, String> {
 
   private static final String TAG = "15440_LoginTask";
   private static final boolean DEBUG = true;
@@ -50,6 +50,12 @@ public class LoginTask extends AsyncTask<String, Void, String> {
     });
     mProgress.setCanceledOnTouchOutside(false);
     mProgress.setCancelable(true);
+  }
+
+  @Override
+  protected void onProgressUpdate(String... progress) {
+    mProgress.setMessage(progress[0]);
+    mProgress.setCancelable(false);
   }
 
   @Override
@@ -93,7 +99,10 @@ public class LoginTask extends AsyncTask<String, Void, String> {
           "Attempting to join! User: %s, Host: %s, Port: %d", user, host, port));
     }
 
-    byte[] joinMsg = String.format(Locale.US, "J,%s", user).getBytes();
+    String joinMsg = new String("J," + user);
+    if (DEBUG) {
+      Log.v(TAG, "Sending join request: " + joinMsg);
+    }
     mOut.println(joinMsg);
 
     if (mOut.checkError()) {
@@ -134,15 +143,18 @@ public class LoginTask extends AsyncTask<String, Void, String> {
       return "JNO";
     }
 
-    mProgress.setMessage("Setting up game environment...");
-    mProgress.setCancelable(false);
+    // Otherwise, we just assume that we got a join request.
+
+
+    // Publish the updated progress...
+    publishProgress(new String[] { "Setting up game environment..." });
 
     if (DEBUG) {
       Log.v(TAG, "Requesting a puck from the server...");
     }
 
     // Request a puck from the server
-    String puckMsg = String.format(Locale.US, "P,%s\n", mUser);
+    String puckMsg = new String("P," + mUser);
     mOut.println(puckMsg);
 
     if (mOut.checkError()) {
@@ -158,9 +170,13 @@ public class LoginTask extends AsyncTask<String, Void, String> {
     try {
       puckResult = mIn.readLine();
     } catch (IOException e) {
-      Log.e(TAG, "IOException while waiting for server's join response.");
+      Log.e(TAG, "IOException while waiting for server's puck response.");
       close();
       return null;
+    }
+
+    if (DEBUG) {
+      Log.v(TAG, "Received puck request from server: " + puckResult);
     }
 
     if (puckResult == null) {
@@ -182,13 +198,7 @@ public class LoginTask extends AsyncTask<String, Void, String> {
     } catch (InterruptedException e) {
     }
 
-    // Return the socket and the result minus the newline character
-    if (puckResult.charAt(puckResult.length() - 1) != '\n') {
-      Log.e(TAG, "WARNING!! RESULT IS NON-NULL AND DOES NOT END WITH NEW LINE!");
-    }
-
-    String trimmedResult = puckResult.substring(puckResult.length() - 1);
-    return trimmedResult;
+    return puckResult;
   }
 
   private void close() {
@@ -248,20 +258,19 @@ public class LoginTask extends AsyncTask<String, Void, String> {
       return;
     }
 
-    int index = result.indexOf(",");
-    if (index >= 0 && result.substring(0, index).equals("JOK")) {
-      if (DEBUG) {
-        Log.v(TAG, "Client joined successfully!");
-      }
+    if (DEBUG) {
+      Log.v(TAG, "Received server response: " + result);
     }
 
-    if (mCallback != null) {
-      if (DEBUG) {
-        if (result != null)
-          Log.v(TAG, "Received server response: " + result);
-      }
-      mCallback.onLoginComplete(mSocket, mIn, mOut);
+    String[] parsed = result.split(",");
+    if (parsed.length != 2) {
+      Log.e(TAG, "WARNING! EXPECTING POK, GOT: " + result);
+      return;
     }
+
+    int puckId = Integer.parseInt(parsed[1]);
+    mCallback.onLoginComplete(mSocket, mIn, mOut, puckId);
+
   }
 
   @Override
@@ -278,6 +287,6 @@ public class LoginTask extends AsyncTask<String, Void, String> {
   }
 
   public interface LoginCallback {
-    void onLoginComplete(Socket socket, BufferedReader in, PrintWriter out);
+    void onLoginComplete(Socket socket, BufferedReader in, PrintWriter out, int puckId);
   }
 }

@@ -253,7 +253,14 @@ public class Puck extends Shape {
     mX += (delta * Math.cos(mDirection));
     mY += (delta * Math.sin(mDirection));
 
-    double newSpeed = 0.995 * mPixelsPerSecond;
+    double friction;
+    if (mRegion.isGoal()) {
+      friction = 0.98;
+    } else {
+      friction = 0.995;
+    }
+
+    double newSpeed = friction * mPixelsPerSecond;
     mPixelsPerSecond = (float) Math.max(newSpeed, MIN_SPEED);
 
     mLastUpdate = now;
