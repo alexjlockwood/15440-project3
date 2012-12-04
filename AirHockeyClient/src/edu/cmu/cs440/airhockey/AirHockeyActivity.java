@@ -16,6 +16,7 @@ import android.util.Log;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Toast;
+import edu.cmu.cs440.airhockey.AirHockeyView.Mode;
 import edu.cmu.cs440.airhockey.LoginDialogFragment.NewGameCallback;
 import edu.cmu.cs440.airhockey.LoginTask.LoginCallback;
 
@@ -63,15 +64,14 @@ public class AirHockeyActivity extends FragmentActivity implements
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     mBallsView = (AirHockeyView) findViewById(R.id.ballsView);
     mBallsView.setCallback(this);
+    mBallsView.setMode(Mode.Paused);
     // mState = STATE_NONE;
   }
 
   /** {@inheritDoc} */
   @Override
   public void onEngineReady(PuckEngine ballEngine) {
-    // display 10 balls bouncing around for visual effect
     ballEngine.reset(SystemClock.elapsedRealtime(), PREVIEW_NUM_BALLS);
-    mBallsView.setMode(AirHockeyView.Mode.Bouncing);
     showLoginDialog();
   }
 
@@ -84,7 +84,6 @@ public class AirHockeyActivity extends FragmentActivity implements
   @Override
   protected void onPause() {
     super.onPause();
-    // mBallsView.setMode(AirHockeyView.Mode.PausedByUser);
   }
 
   @Override
@@ -130,8 +129,10 @@ public class AirHockeyActivity extends FragmentActivity implements
     startGame();
     mNetworkThread = new NetworkThread(region, mHandler, socket, in, out);
     mNetworkThread.start();
-
   }
+
+  // TODO: handle server crashes! Don't reset until we know for sure we can't
+  // reconnect with another server!
 
   private void startGame() {
     if (DEBUG)
@@ -147,7 +148,7 @@ public class AirHockeyActivity extends FragmentActivity implements
       Log.v(TAG, "Client game has ended...");
     mBallsView.getEngine().reset(SystemClock.elapsedRealtime(),
         PREVIEW_NUM_BALLS);
-    mBallsView.setMode(AirHockeyView.Mode.Bouncing);
+    mBallsView.setMode(AirHockeyView.Mode.Paused);
     showLoginDialog();
   }
 
@@ -215,7 +216,9 @@ public class AirHockeyActivity extends FragmentActivity implements
               if (DEBUG) {
                 Log.v(TAG, "POK type message read.");
               }
-              Puck newBall = mBallsView.randomIncomingPuck((Integer) msg.obj);
+              long now = SystemClock.elapsedRealtime();
+              Puck newBall = mBallsView.randomIncomingPuck(now,
+                  (Integer) msg.obj);
               newBall.setColor(mPuckColor);
               newBall.setRegion(mBallsView.getEngine().getRegion());
               mBallsView.getEngine().addIncomingPuck(newBall);

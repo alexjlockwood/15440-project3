@@ -6,7 +6,6 @@
     <string name="hostname">Hostname</string>
     <string name="port">Port</string>
     <string name="connect">Connect</string>
-    <string name="unpause_instructions">Touch to unpause</string>
 
     <!-- AirHockeyActivity -->
     <string name="no_connection_found">No internet connection found.</string>
@@ -21,6 +20,7 @@
     <string-array name="colors">
         <item>Blue</item>
         <item>Green</item>
+        <item>Light Blue</item>
         <item>Orange</item>
         <item>Purple</item>
         <item>Red</item>

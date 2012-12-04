@@ -432,6 +432,6 @@ public class Puck extends Shape {
   }
 
   public enum Color {
-    Blue, Green, Orange, Purple, Red, Yellow,
+    Blue, Green, LightBlue, Orange, Purple, Red, Yellow,
   }
 }

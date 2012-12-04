@@ -14,7 +14,6 @@ import android.graphics.RectF;
 import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -43,6 +42,8 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
   private Bitmap mBallBlueSmall;
   private Bitmap mBallGreenBig;
   private Bitmap mBallGreenSmall;
+  private Bitmap mBallLightBlueBig;
+  private Bitmap mBallLightBlueSmall;
   private Bitmap mBallOrangeBig;
   private Bitmap mBallOrangeSmall;
   private Bitmap mBallPurpleBig;
@@ -84,6 +85,10 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
         .decodeResource(res, R.drawable.ball_green_big);
     mBallGreenSmall = BitmapFactory.decodeResource(res,
         R.drawable.ball_green_small);
+    mBallLightBlueBig = BitmapFactory.decodeResource(res,
+        R.drawable.ball_light_blue_big);
+    mBallLightBlueSmall = BitmapFactory.decodeResource(res,
+        R.drawable.ball_light_blue_small);
     mBallOrangeBig = BitmapFactory.decodeResource(res,
         R.drawable.ball_orange_big);
     mBallOrangeSmall = BitmapFactory.decodeResource(res,
@@ -130,7 +135,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
     int minY = BORDER_WIDTH;
     int maxY = getHeight() - BORDER_WIDTH;
 
-    mEngine = new PuckEngine(minX, maxX, minY, maxY, mBallRadiusBig);
+    mEngine = new PuckEngine(minX, maxX, minY, maxY/* , mBallRadiusBig */);
     mEngine.setCallBack(this);
 
     // note: this should never be null
@@ -168,11 +173,10 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
 
   @Override
   public boolean onTouchEvent(MotionEvent motionEvent) {
-    if (mMode == Mode.PausedByUser) {
-      // touching unpauses when the game was paused by the user.
-      setMode(Mode.Bouncing);
-      return true;
-    } else if (mMode == Mode.Paused) {
+    /*
+     * if (mMode == Mode.PausedByUser) { // touching unpauses when the game was
+     * paused by the user. setMode(Mode.Bouncing); return true; } else
+     */if (mMode == Mode.Paused) {
       return false;
     }
 
@@ -292,32 +296,21 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
     drawRegion(canvas, region);
     drawGoal(canvas, goal);
     drawBalls(canvas, region, goal);
+
     if (mPressedBall != null) {
       canvas.drawBitmap(getColoredPuckBig(mPressedBall.getColor()),
           mPressedBall.getX() - mBallRadiusBig, mPressedBall.getY()
               - mBallRadiusBig, mPaint);
     }
 
-    if (mMode == Mode.PausedByUser) {
-      drawPausedText(canvas);
-    } else if (mMode == Mode.Bouncing) {
+    mPaint.setAntiAlias(true);
+
+    /*
+     * if (mMode == Mode.PausedByUser) { drawPausedText(canvas); } else
+     */if (mMode == Mode.Bouncing) {
       // Re-draw the screen (results in a subsequent call to 'onDraw(Canvas)')
       invalidate();
     }
-  }
-
-  /**
-   * Pain the text instructing the user how to unpause the game.
-   */
-  private void drawPausedText(Canvas canvas) {
-    mPaint.setColor(Color.BLACK);
-    mPaint.setAntiAlias(true);
-    mPaint.setTextAlign(Paint.Align.CENTER);
-    mPaint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP,
-        20, getResources().getDisplayMetrics()));
-    String instructions = getContext().getString(R.string.unpause_instructions);
-    canvas.drawText(instructions, getWidth() / 2, getHeight() / 2, mPaint);
-    mPaint.setAntiAlias(false);
   }
 
   private RectF mRectF = new RectF();
@@ -378,7 +371,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
       canvas.drawBitmap(smallBitmap, ball.getX() - mBallRadiusSmall,
           ball.getY() - mBallRadiusSmall, mPaint);
     }
-    mPaint.setAntiAlias(true);
+
   }
 
   private Bitmap getColoredPuckBig(Puck.Color color) {
@@ -386,6 +379,8 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
       return mBallBlueBig;
     } else if (color == Puck.Color.Green) {
       return mBallGreenBig;
+    } else if (color == Puck.Color.LightBlue) {
+      return mBallLightBlueBig;
     } else if (color == Puck.Color.Orange) {
       return mBallOrangeBig;
     } else if (color == Puck.Color.Purple) {
@@ -402,6 +397,8 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
       return mBallBlueSmall;
     } else if (color == Puck.Color.Green) {
       return mBallGreenSmall;
+    } else if (color == Puck.Color.LightBlue) {
+      return mBallLightBlueSmall;
     } else if (color == Puck.Color.Orange) {
       return mBallOrangeSmall;
     } else if (color == Puck.Color.Purple) {
@@ -443,6 +440,9 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
      */
     void onEngineReady(PuckEngine ballEngine);
 
+    /**
+     * Captures an event when the ball is exiting the region.
+     */
     void onBallExitsRegion(long when, Puck ball, int exitEdge);
   }
 
@@ -457,57 +457,54 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
     Bouncing,
 
     /**
-     * The animation has stopped and the balls won't move around. The user may
-     * not unpause it; this is used to temporarily stop games between levels, or
-     * when the game is over and the activity places a dialog up.
+     * The animation has stopped and the balls won't move around.
      */
     Paused,
-
-    /**
-     * Same as {@link #Paused}, but paints the word 'touch to unpause' on the
-     * screen, so the user knows he/she can unpause the game.
-     */
-    PausedByUser,
-
-    Preview,
   }
 
-  public Puck randomIncomingPuck(int puckId) {
+  // TODO: make sure the angles are correct here!
+
+  public Puck randomIncomingPuck(long now, int puckId) {
     float x, y;
     double angle;
+    // TODO: add a little more randomness here! Fix this when confident that
+    // TCP is working as it should.
+    double angleOffset = Math.random() * (0.5 * Math.PI) - (0.25 * Math.PI);
     float pps = BALL_START_SPEED;
     float radius = mBallRadiusBig;
 
-    int edge = (int) (Math.random() * 4);
-    switch (edge) {
+    int enterEdge = (int) (Math.random() * 4);
+    switch (enterEdge) {
       case PuckRegion.LEFT: // 0
         x = -mBallRadiusBig + 1;
         y = (float) (getHeight() / 2);
-        angle = 0;
+        angle = 0 + angleOffset;
         break;
       case PuckRegion.TOP: // 1
         x = (float) (getWidth() / 2);
         y = -mBallRadiusBig + 1;
-        angle = 1.5 * Math.PI;
+        angle = 1.5 * Math.PI + angleOffset;
         break;
       case PuckRegion.BOTTOM: // 2
         x = (float) (getWidth() / 2);
         y = getHeight() + mBallRadiusBig - 1;
-        angle = 0.5 * Math.PI;
+        angle = 0.5 * Math.PI + angleOffset;
         break;
       default: // 3
         x = getWidth() + mBallRadiusBig - 1;
         y = (float) (getHeight() / 2);
-        angle = Math.PI;
+        angle = Math.PI + angleOffset;
         break;
     }
 
     Puck incomingPuck = new Puck.Builder().setX(x).setY(y).setAngle(angle)
         .setRadiusPixels(radius).setPixelsPerSecond(pps).setId(puckId)
-        .setNow(SystemClock.elapsedRealtime()).setLastUser(mUser).create();
+        .setNow(now).setLastUser(mUser).create();
+
     if (DEBUG)
       Log.v(TAG,
           "Adding random incoming puck to screen: " + incomingPuck.toString());
+
     return incomingPuck;
   }
 }

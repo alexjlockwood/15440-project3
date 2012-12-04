@@ -75,6 +75,8 @@ public class Utils {
       return Puck.Color.Blue;
     } else if (colorText.equals("green")) {
       return Puck.Color.Green;
+    } else if (colorText.equals("lightblue")) {
+      return Puck.Color.LightBlue;
     } else if (colorText.equals("orange")) {
       return Puck.Color.Orange;
     } else if (colorText.equals("purple")) {
@@ -91,6 +93,8 @@ public class Utils {
       return "blue";
     } else if (color == Puck.Color.Green) {
       return "green";
+    } else if (color == Puck.Color.LightBlue) {
+      return "lightblue";
     } else if (color == Puck.Color.Orange) {
       return "orange";
     } else if (color == Puck.Color.Purple) {

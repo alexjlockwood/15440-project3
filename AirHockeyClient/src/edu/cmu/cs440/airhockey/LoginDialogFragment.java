@@ -50,6 +50,12 @@ public class LoginDialogFragment extends DialogFragment implements
     mPort = (EditText) v.findViewById(R.id.port);
     mColorsSpinner = (Spinner) v.findViewById(R.id.colors_spinner);
 
+    // Set a random color... just to have some variation in ball colors.
+    String[] mColorsArray = mActivity.getResources().getStringArray(
+        R.array.colors);
+    int randomColor = (int) (Math.random() * mColorsArray.length);
+    mColorsSpinner.setSelection(randomColor);
+
     mHostname.setText("unix11.andrew.cmu.edu");
     mPort.setText("18001");
 
@@ -92,6 +98,8 @@ public class LoginDialogFragment extends DialogFragment implements
         color = Puck.Color.Blue;
       } else if (colorText.equals("green")) {
         color = Puck.Color.Green;
+      } else if (colorText.equals("light blue")) {
+        color = Puck.Color.LightBlue;
       } else if (colorText.equals("orange")) {
         color = Puck.Color.Orange;
       } else if (colorText.equals("purple")) {

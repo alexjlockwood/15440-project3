@@ -38,7 +38,7 @@ public class PuckEngine {
   private final float mGoalMinY;
   private final float mGoalMaxY;
 
-  public PuckEngine(float minX, float maxX, float minY, float maxY, float radius) {
+  public PuckEngine(float minX, float maxX, float minY, float maxY/*, float radius*/) {
     mMinX = minX;
     mMaxX = maxX;
     mMinY = minY;
