@@ -258,7 +258,7 @@ public class Puck extends Shape {
     if (mDirection > 1.5 * Math.PI) {
       mDirection -= (mDirection - 1.5 * Math.PI) * 2; // going up
     } else {
-      mDirection += (.5 * Math.PI - mDirection) * 2; // going down
+      mDirection += (0.5 * Math.PI - mDirection) * 2; // going down
     }
   }
 

@@ -26,7 +26,7 @@ public class PuckRegion extends Shape {
 
   /**
    * Creates a BallRegion with the given bounds and balls.
-   * 
+   *
    * @param left
    *          The minimum x component
    * @param right
@@ -111,13 +111,16 @@ public class PuckRegion extends Shape {
 
   /**
    * Update the balls in this region. Called by the {@link PuckEngine}.
-   * 
+   *
    * @param now
    *          in millis
    * @return A new region if a split has occurred because the animating line
    *         finished.
    */
   public void update(long now) {
+    // TODO: figure out how we might avoid allocating an iterator here...
+    // Memory allocations can be kind of expensive given that we are constantly
+    // redrawing and updating the screen's state.
     Iterator<Puck> iter = mPucks.iterator();
     while (iter.hasNext()) {
       Puck ball = iter.next();
