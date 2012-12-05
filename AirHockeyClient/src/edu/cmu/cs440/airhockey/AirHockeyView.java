@@ -1,5 +1,7 @@
 package edu.cmu.cs440.airhockey;
 
+import static edu.cmu.cs440.airhockey.Utils.LOGV;
+
 import java.util.Iterator;
 import java.util.List;
 
@@ -14,7 +16,6 @@ import android.graphics.RectF;
 import android.os.SystemClock;
 import android.os.Vibrator;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -24,7 +25,6 @@ import android.view.View;
 public class AirHockeyView extends View implements PuckEngine.BallEventCallBack {
 
   private static final String TAG = "15440_AirHockeyView";
-  private static final boolean DEBUG = true;
 
   public static final int BORDER_WIDTH = 10;
   private static final float BALL_START_SPEED = 120f;
@@ -81,31 +81,19 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
     // retrieve and decode bitmaps
     Resources res = context.getResources();
     mBallBlueBig = BitmapFactory.decodeResource(res, R.drawable.ball_blue_big);
-    mBallBlueSmall = BitmapFactory.decodeResource(res,
-        R.drawable.ball_blue_small);
-    mBallGreenBig = BitmapFactory
-        .decodeResource(res, R.drawable.ball_green_big);
-    mBallGreenSmall = BitmapFactory.decodeResource(res,
-        R.drawable.ball_green_small);
-    mBallLightBlueBig = BitmapFactory.decodeResource(res,
-        R.drawable.ball_light_blue_big);
-    mBallLightBlueSmall = BitmapFactory.decodeResource(res,
-        R.drawable.ball_light_blue_small);
-    mBallOrangeBig = BitmapFactory.decodeResource(res,
-        R.drawable.ball_orange_big);
-    mBallOrangeSmall = BitmapFactory.decodeResource(res,
-        R.drawable.ball_orange_small);
-    mBallPurpleBig = BitmapFactory.decodeResource(res,
-        R.drawable.ball_purple_big);
-    mBallPurpleSmall = BitmapFactory.decodeResource(res,
-        R.drawable.ball_purple_small);
+    mBallBlueSmall = BitmapFactory.decodeResource(res, R.drawable.ball_blue_small);
+    mBallGreenBig = BitmapFactory.decodeResource(res, R.drawable.ball_green_big);
+    mBallGreenSmall = BitmapFactory.decodeResource(res, R.drawable.ball_green_small);
+    mBallLightBlueBig = BitmapFactory.decodeResource(res, R.drawable.ball_light_blue_big);
+    mBallLightBlueSmall = BitmapFactory.decodeResource(res, R.drawable.ball_light_blue_small);
+    mBallOrangeBig = BitmapFactory.decodeResource(res, R.drawable.ball_orange_big);
+    mBallOrangeSmall = BitmapFactory.decodeResource(res, R.drawable.ball_orange_small);
+    mBallPurpleBig = BitmapFactory.decodeResource(res, R.drawable.ball_purple_big);
+    mBallPurpleSmall = BitmapFactory.decodeResource(res, R.drawable.ball_purple_small);
     mBallRedBig = BitmapFactory.decodeResource(res, R.drawable.ball_red_big);
-    mBallRedSmall = BitmapFactory
-        .decodeResource(res, R.drawable.ball_red_small);
-    mBallYellowBig = BitmapFactory.decodeResource(res,
-        R.drawable.ball_yellow_big);
-    mBallYellowSmall = BitmapFactory.decodeResource(res,
-        R.drawable.ball_yellow_small);
+    mBallRedSmall = BitmapFactory.decodeResource(res, R.drawable.ball_red_small);
+    mBallYellowBig = BitmapFactory.decodeResource(res, R.drawable.ball_yellow_big);
+    mBallYellowSmall = BitmapFactory.decodeResource(res, R.drawable.ball_yellow_small);
 
     mBallRadiusBig = ((float) mBallBlueBig.getWidth()) / 2f;
     mBallRadiusSmall = ((float) mBallBlueSmall.getWidth()) / 2f;
@@ -141,7 +129,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
     int minY = BORDER_WIDTH;
     int maxY = getHeight() - BORDER_WIDTH;
 
-    mEngine = new PuckEngine(minX, maxX, minY, maxY/* , mBallRadiusBig */);
+    mEngine = new PuckEngine(minX, maxX, minY, maxY);
     mEngine.setCallBack(this);
 
     // note: this should never be null
@@ -207,14 +195,14 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
           if (checkSecret(x, y)) {
             resetSecret();
             long timeSinceSecs = (now - mLastUhoh) / 1000;
-            Log.v(TAG, "time since secs: " + timeSinceSecs);
+            LOGV(TAG, "time since secs: " + timeSinceSecs);
             if (mLastUhoh == -1 || timeSinceSecs >= UHOH_WAIT_SECS) {
-              mCallback.uhoh("Uh oh...");
+              mCallback.uhoh("Uh oh...", 10);
               mLastUhoh = now;
               resetSecret();
             } else {
               long waitSecs = UHOH_WAIT_SECS - timeSinceSecs + 1;
-              mCallback.uhoh("Try again in " + waitSecs + " seconds.");
+              mCallback.uhoh("Try again in " + waitSecs + " seconds.", -1);
             }
           }
           mLastPressedX = mPressedBall.getX();
@@ -237,7 +225,6 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
             goalRegion.addBall(mPressedBall);
             mPressedBall.setRegion(goalRegion);
             mPressedBall.setRadiusPixels(mBallRadiusSmall);
-
             // TODO: notify that a goal was scored? Can a player manipulate this
             // and simply drag all balls into their goal to prevent others from
             // scoring??
@@ -289,7 +276,6 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
         return puck;
       }
     }
-
     // No puck in the given bounds
     return null;
   }
@@ -317,16 +303,13 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
     drawBalls(canvas, region, goal);
 
     if (mPressedBall != null) {
-      canvas.drawBitmap(getColoredPuckBig(mPressedBall.getColor()),
-          mPressedBall.getX() - mBallRadiusBig, mPressedBall.getY()
-              - mBallRadiusBig, mPaint);
+      canvas.drawBitmap(getColoredPuckBig(mPressedBall.getColor()), mPressedBall.getX()
+          - mBallRadiusBig, mPressedBall.getY() - mBallRadiusBig, mPaint);
     }
 
     mPaint.setAntiAlias(true);
 
-    /*
-     * if (mMode == Mode.PausedByUser) { drawPausedText(canvas); } else
-     */if (mMode == Mode.Bouncing) {
+    if (mMode == Mode.Bouncing) {
       // Re-draw the screen (results in a subsequent call to 'onDraw(Canvas)')
       invalidate();
     }
@@ -340,8 +323,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
   private void drawRegion(Canvas canvas, PuckRegion region) {
     // Draw the region
     mPaint.setColor(Color.LTGRAY);
-    mRectF.set(region.getLeft(), region.getTop(), region.getRight(),
-        region.getBottom());
+    mRectF.set(region.getLeft(), region.getTop(), region.getRight(), region.getBottom());
     canvas.drawRect(mRectF, mPaint);
 
     // Draw an outline
@@ -358,8 +340,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
   private void drawGoal(Canvas canvas, PuckRegion region) {
     // draw fill rect to offset against background
     mPaint.setColor(Color.GRAY);
-    mRectF.set(region.getLeft(), region.getTop(), region.getRight(),
-        region.getBottom());
+    mRectF.set(region.getLeft(), region.getTop(), region.getRight(), region.getBottom());
     canvas.drawRect(mRectF, mPaint);
 
     // draw an outline
@@ -379,8 +360,8 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
     for (int i = 0; i < regionBalls.size(); i++) {
       final Puck ball = regionBalls.get(i);
       Bitmap bigBitmap = getColoredPuckBig(ball.getColor());
-      canvas.drawBitmap(bigBitmap, ball.getX() - mBallRadiusBig, ball.getY()
-          - mBallRadiusBig, mPaint);
+      canvas.drawBitmap(bigBitmap, ball.getX() - mBallRadiusBig, ball.getY() - mBallRadiusBig,
+          mPaint);
     }
 
     List<Puck> goalBalls = goal.getBalls();
@@ -444,8 +425,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
   /** {@inheritDoc} */
   @Override
   public void onGoalScored(long when, Puck ball) {
-    if (DEBUG)
-      Log.v(TAG, "A ball has entered the goal region: " + ball.toString());
+    LOGV(TAG, "A ball has entered the goal region: " + ball.toString());
     ball.setRadiusPixels(mBallRadiusSmall);
     // TODO: notify player when goal is scored!
   }
@@ -465,7 +445,7 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
      */
     void onBallExitsRegion(long when, Puck ball, int exitEdge);
 
-    void uhoh(String msg);
+    void uhoh(String msg, int numBalls);
   }
 
   /**
@@ -518,14 +498,10 @@ public class AirHockeyView extends View implements PuckEngine.BallEventCallBack 
         break;
     }
 
-    Puck incomingPuck = new Puck.Builder().setX(x).setY(y).setAngle(angle)
-        .setRadiusPixels(radius).setPixelsPerSecond(pps).setId(puckId)
-        .setNow(now).setLastUser(mUser).create();
+    Puck incomingPuck = new Puck.Builder().setX(x).setY(y).setAngle(angle).setRadiusPixels(radius)
+        .setPixelsPerSecond(pps).setId(puckId).setNow(now).setLastUser(mUser).create();
 
-    if (DEBUG)
-      Log.v(TAG,
-          "Adding random incoming puck to screen: " + incomingPuck.toString());
-
+    LOGV(TAG, "Adding random incoming puck: " + incomingPuck.toString());
     return incomingPuck;
   }
 

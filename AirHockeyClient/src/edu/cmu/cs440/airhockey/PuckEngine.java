@@ -14,11 +14,6 @@ import java.util.Iterator;
  */
 public class PuckEngine {
 
-  @SuppressWarnings("unused")
-  private static final String TAG = "15440_PuckEngine";
-  @SuppressWarnings("unused")
-  private static final boolean DEBUG = true;
-
   /**
    * Directs callback events to the {@link AirHockeyView}.
    */
@@ -31,19 +26,16 @@ public class PuckEngine {
   private final float mMinY;
   private final float mMaxY;
 
-  //private float mBallRadius;
-
   private final float mGoalMinX;
   private final float mGoalMaxX;
   private final float mGoalMinY;
   private final float mGoalMaxY;
 
-  public PuckEngine(float minX, float maxX, float minY, float maxY/*, float radius*/) {
+  public PuckEngine(float minX, float maxX, float minY, float maxY) {
     mMinX = minX;
     mMaxX = maxX;
     mMinY = minY;
     mMaxY = maxY;
-    //mBallRadius = radius;
 
     final float regionWidth = maxX - minX;
     final float regionHeight = maxY - minY;
@@ -94,6 +86,9 @@ public class PuckEngine {
    * the game is not coming back from a paused state.
    */
   public void update(long now) {
+    // TODO: figure out how we might avoid allocating an iterator here...
+    // Memory allocations can be kind of expensive given that we are constantly
+    // redrawing and updating the screen's state.
     Iterator<Puck> it = mRegion.getBalls().iterator();
     while (it.hasNext()) {
       final Puck ball = it.next();
@@ -113,33 +108,14 @@ public class PuckEngine {
     mGoalRegion.update(now);
   }
 
-  /**
-   * Reset the engine back to a goal region and an outer region with a certain
-   * number of balls that will be placed randomly and sent in random directions.
-   *
-   * @param now
-   *          milliseconds since some consistent point in time.
-   * @param numBalls
-   */
-  public void reset(long now, int numBalls) {
-    // Reset the outer region
-    // ArrayList<Puck> balls = new ArrayList<Puck>(numBalls);
-    // for (int i = 0; i < numBalls; i++) {
-    // Puck ball = new Puck.Builder().setNow(now)
-    // .setAngle(Math.random() * 2 * Math.PI)
-    // .setX((float) Math.random() * (mMaxX - mMinX) + mMinX)
-    // .setY((float) Math.random() * (mMaxY - mMinY) + mMinY)
-    // .setRadiusPixels(mBallRadius).create();
-    // balls.add(ball);
-    // }
-    PuckRegion region = new PuckRegion(mMinX, mMaxX, mMinY, mMaxY,
-        new ArrayList<Puck>(numBalls), false);
+  public void reset() {
+    PuckRegion region = new PuckRegion(mMinX, mMaxX, mMinY, mMaxY, new ArrayList<Puck>(10), false);
     region.setCallBack(mCallBack);
     mRegion = region;
 
     // Reset the goal region
-    PuckRegion goalRegion = new PuckRegion(mGoalMinX, mGoalMaxX, mGoalMinY,
-        mGoalMaxY, new ArrayList<Puck>(), true);
+    PuckRegion goalRegion = new PuckRegion(mGoalMinX, mGoalMaxX, mGoalMinY, mGoalMaxY,
+        new ArrayList<Puck>(10), true);
     goalRegion.setCallBack(mCallBack);
     mGoalRegion = goalRegion;
   }

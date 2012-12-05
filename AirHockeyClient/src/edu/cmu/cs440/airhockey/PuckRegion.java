@@ -11,11 +11,6 @@ import java.util.List;
  */
 public class PuckRegion extends Shape {
 
-  @SuppressWarnings("unused")
-  private static final String TAG = "15440_PuckRegion";
-  @SuppressWarnings("unused")
-  private static final boolean DEBUG = true;
-
   public static final int LEFT = 0;
   public static final int TOP = 1;
   public static final int BOTTOM = 2;
@@ -144,7 +139,7 @@ public class PuckRegion extends Shape {
         if (ball.isCircleOverlapping(other)) {
           Puck.adjustForCollision(ball, other);
           // Notify the BallEngine that a collision has occurred
-          mCallback.get().onBallHitsBall(ball, other);
+          // mCallback.get().onBallHitsBall(ball, other);
           break;
         }
       }

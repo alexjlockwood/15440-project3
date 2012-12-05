@@ -11,12 +11,19 @@
     <string name="no_connection_found">No internet connection found.</string>
     <string name="connection_lost">Connection lost.</string>
     <string name="press_back_to_exit_warning">Press again to disconnect!</string>
+    <string name="progress_retry">Retrying connection…</string>
+
+    <!-- LoginDialogFragment -->
+    <string name="login_user_non_empty">User name must not be empty!</string>
+    <string name="login_alpha_numeric_only">User name must contain alphanumeric characters only!</string>
+    <string name="login_host_non_empty">Host name must not be empty!</string>
+    <string name="login_port_non_empty">"Port must not be empty!"</string>
 
     <!-- LoginTask -->
     <string name="progress_connecting">Connecting…</string>
     <string name="could_not_connect">Could not connect! Please try again.</string>
     <string name="user_already_connected">User already connected!</string>
-    
+
     <string-array name="colors">
         <item>Blue</item>
         <item>Green</item>

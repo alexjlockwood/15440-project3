@@ -1,5 +1,8 @@
 package edu.cmu.cs440.airhockey;
 
+import static edu.cmu.cs440.airhockey.Utils.LOGE;
+import static edu.cmu.cs440.airhockey.Utils.LOGV;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -14,13 +17,11 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.AsyncTask;
-import android.util.Log;
 import android.widget.Toast;
 
 public class LoginTask extends AsyncTask<String, String, String> {
 
   private static final String TAG = "15440_LoginTask";
-  private static final boolean DEBUG = true;
 
   private Context mCtx;
   private LoginCallback mCallback;
@@ -55,7 +56,6 @@ public class LoginTask extends AsyncTask<String, String, String> {
   @Override
   protected void onProgressUpdate(String... progress) {
     mProgress.setMessage(progress[0]);
-    mProgress.setCancelable(false);
   }
 
   @Override
@@ -64,12 +64,9 @@ public class LoginTask extends AsyncTask<String, String, String> {
     String host = args[1];
     int port = Integer.parseInt(args[2]);
 
-    try {
-      // Sleep for a little bit just so it looks like we are doing
-      // some work. :)
-      Thread.sleep(500);
-    } catch (InterruptedException e) {
-    }
+    // Sleep for a little bit just so it looks like we are doing
+    // some work. :)
+    sleep(500);
 
     if (isCancelled()) {
       return null;
@@ -81,45 +78,32 @@ public class LoginTask extends AsyncTask<String, String, String> {
       mOut = new PrintWriter(mSocket.getOutputStream(), true);
       mIn = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
     } catch (SocketException e) {
-      Log.e(TAG, "SocketException during login");
-      close();
+      LOGE(TAG, "SocketException during login");
       return null;
     } catch (UnknownHostException e) {
-      Log.e(TAG, "Could not resolve hostname: " + host);
-      close();
+      LOGE(TAG, "Could not resolve hostname: " + host);
       return null;
     } catch (IOException e) {
-      Log.e(TAG, "IOException during login");
-      close();
+      LOGE(TAG, "IOException during login");
       return null;
     }
 
-    if (DEBUG) {
-      Log.v(TAG, String.format(Locale.US,
-          "Attempting to join! User: %s, Host: %s, Port: %d", user, host, port));
-    }
+    LOGV(TAG, String.format(Locale.US, "Attempting to join! User: %s, Host: %s, Port: %d", user,
+        host, port));
 
-    String joinMsg = new String("J," + user);
-    if (DEBUG) {
-      Log.v(TAG, "Sending join request: " + joinMsg);
-    }
-    mOut.println(joinMsg);
+    LOGV(TAG, "Sending join request: J," + user);
+    mOut.println("J," + user);
 
     if (mOut.checkError()) {
-      Log.e(TAG, "Client failed to write message because PrintWriter threw an"
-          + "IOException!");
-      close();
+      LOGE(TAG, "Client failed to write message because PrintWriter threw an IOException!");
       return null;
-    }
-
-    if (DEBUG) {
-      Log.v(TAG, "Waiting for server's 'join response'.");
     }
 
     if (isCancelled()) {
-      close();
       return null;
     }
+
+    LOGV(TAG, "Waiting for server's 'join response'.");
 
     // Blocks until the server responds or the client times out waiting
     // for the server to respond.
@@ -127,94 +111,88 @@ public class LoginTask extends AsyncTask<String, String, String> {
     try {
       result = mIn.readLine();
     } catch (IOException e) {
-      Log.e(TAG, "IOException while waiting for server's join response.");
-      close();
+      LOGE(TAG, "IOException while waiting for server's join response.");
       return null;
     }
 
-    if (isCancelled() || result == null) {
-      close();
+    if (isCancelled()) {
       return null;
-    } else if (result.equals("DUP\n")) {
-      close();
-      return "DUP";
-    } else if (result.equals("JNO\n")) {
-      close();
-      return "JNO";
     }
 
-    // Otherwise, we just assume that we got a join request.
+    if (result == null || result.equals("DUP") || result.equals("JNO")) {
+      return result;
+    }
 
 
     // Publish the updated progress...
     publishProgress(new String[] { "Setting up game environment..." });
 
-    if (DEBUG) {
-      Log.v(TAG, "Requesting a puck from the server...");
+    // Yeah, I know... 'Setting up game environment...' makes it sound like
+    // there's a lot of background processing going on doesn't it? :D
+    sleep(500);
+
+    if (isCancelled()) {
+      return null;
     }
+
+    // OK, I'll stop giving you guys meaningless progress dialog updates now...
 
     // Request a puck from the server
     String puckMsg = new String("P," + mUser);
     mOut.println(puckMsg);
 
     if (mOut.checkError()) {
-      Log.e(TAG, "Client failed to write message because PrintWriter threw an"
-          + "IOException!");
-      close();
+      LOGE(TAG, "Client failed to write message because PrintWriter threw an IOException!");
       return null;
     }
 
-    // Blocks until the server responds or the client times out waiting
-    // for the server to respond.
-    String puckResult = null;
-    try {
-      puckResult = mIn.readLine();
-    } catch (IOException e) {
-      Log.e(TAG, "IOException while waiting for server's puck response.");
+    // The result should be a "JOK" response.
+    return result;
+  }
+
+  @Override
+  protected void onPostExecute(String result) {
+    mProgress.dismiss();
+    if (result == null) {
+      LOGV(TAG, "Client socket connection lost!");
+      Toast.makeText(mCtx, "Could not connect! Please try again.", Toast.LENGTH_SHORT).show();
       close();
-      return null;
-    }
-
-    if (DEBUG) {
-      Log.v(TAG, "Received puck request from server: " + puckResult);
-    }
-
-    if (puckResult == null) {
+      return;
+    } else if (result.equals("JNO")) {
+      LOGV(TAG, "Client failed to join!");
+      Toast.makeText(mCtx, R.string.could_not_connect, Toast.LENGTH_SHORT).show();
       close();
-      return null;
+      return;
+    } else if (result.equals("DUP")) {
+      LOGV(TAG, "Client failed to join!");
+      Toast.makeText(mCtx, R.string.user_already_connected, Toast.LENGTH_SHORT).show();
+      close();
+      return;
+    } else {
+      LOGV(TAG, "Received server response: " + result);
+      mCallback.onLoginComplete(mSocket, mIn, mOut);
     }
+  }
 
-    // try {
-    // in.close();
-    // } catch (IOException e) {
-    // // Ignore exception
-    // }
-    // out.close();
-
-    try {
-      // Sleep for a little bit just so it looks like we are doing
-      // some work. :)
-      Thread.sleep(500);
-    } catch (InterruptedException e) {
-    }
-
-    return puckResult;
+  @Override
+  protected void onCancelled() {
+    LOGV(TAG, "The LoginTask was cancelled!");
+    mProgress.dismiss();
+    close();
   }
 
   private void close() {
     if (mSocket != null) {
       try {
         mSocket.close();
-      } catch (IOException e) {
-        // Ignore exception
+      } catch (IOException ignore) {
       }
       mSocket = null;
     }
     if (mIn != null) {
       try {
         mIn.close();
-      } catch (IOException e) {
-        // Ignore exception
+      } catch (IOException ignore) {
       }
       mIn = null;
     }
@@ -224,69 +202,14 @@ public class LoginTask extends AsyncTask<String, String, String> {
     }
   }
 
-  @Override
-  protected void onPostExecute(String result) {
-    if (DEBUG) {
-      Log.v(TAG, "onPostExecute() called!");
-    }
-    mProgress.dismiss();
-
-    if (result == null) {
-      if (DEBUG) {
-        Log.v(TAG, "Client socket connection lost!");
-      }
-      Toast.makeText(mCtx, "Could not connect! Please try again.",
-          Toast.LENGTH_SHORT).show();
-      return;
-    }
-
-    if (result.equals("JNO")) {
-      if (DEBUG) {
-        Log.v(TAG, "Client failed to join!");
-      }
-      Toast.makeText(mCtx, R.string.could_not_connect, Toast.LENGTH_SHORT)
-          .show();
-      return;
-    }
-
-    if (result.equals("DUP")) {
-      if (DEBUG) {
-        Log.v(TAG, "Client failed to join!");
-      }
-      Toast.makeText(mCtx, R.string.user_already_connected, Toast.LENGTH_SHORT)
-          .show();
-      return;
-    }
-
-    if (DEBUG) {
-      Log.v(TAG, "Received server response: " + result);
-    }
-
-    String[] parsed = result.split(",");
-    if (parsed.length != 2) {
-      Log.e(TAG, "WARNING! EXPECTING POK, GOT: " + result);
-      return;
-    }
-
-    int puckId = Integer.parseInt(parsed[1]);
-    mCallback.onLoginComplete(mSocket, mIn, mOut, puckId);
-
-  }
-
-  @Override
-  protected void onCancelled() {
-    if (DEBUG) {
-      Log.v(TAG, "onCancelled() called!");
-    }
-    mProgress.dismiss();
-    if (mCallback != null) {
-      if (DEBUG) {
-        Log.v(TAG, "The LoginTask was cancelled!");
-      }
+  private static void sleep(long millis) {
+    try {
+      Thread.sleep(millis);
+    } catch (InterruptedException ignore) {
     }
   }
 
   public interface LoginCallback {
-    void onLoginComplete(Socket socket, BufferedReader in, PrintWriter out, int puckId);
+    void onLoginComplete(Socket socket, BufferedReader in, PrintWriter out);
   }
 }

@@ -1,19 +1,24 @@
 package edu.cmu.cs440.airhockey;
 
+import static edu.cmu.cs440.airhockey.Utils.LOGE;
+import static edu.cmu.cs440.airhockey.Utils.LOGV;
+import static edu.cmu.cs440.airhockey.Utils.LOGW;
+
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.InetAddress;
 import java.net.Socket;
-import java.util.Arrays;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 
 public class NetworkThread extends Thread {
 
   private static final String TAG = "15440_NetworkThread";
-  private static final boolean DEBUG = true;
 
   public static final int IP = 0;
   public static final int XOK = 1;
@@ -21,50 +26,52 @@ public class NetworkThread extends Thread {
   public static final int POK = 3;
   public static final int PNO = 4;
 
+  private static final int RETRY_ATTEMPTS = 6;
+  private static final int RETRY_ATTEMPTS_WAIT_MILLIS = 5000;
+
   private PuckRegion mRegion;
   private Handler mHandler;
   private Socket mSocket;
   private BufferedReader mIn;
   private PrintWriter mOut;
+  private String mUser;
+  private String mHost;
+  private int mPort;
+
+  private boolean mForceClosed = false;
 
   public NetworkThread(PuckRegion region, Handler handler, Socket socket, BufferedReader in,
-      PrintWriter out) {
+      PrintWriter out, String user, String host, int port) {
     mRegion = region;
     mHandler = handler;
     mSocket = socket;
     mIn = in;
     mOut = out;
+    mUser = user;
+    mHost = host;
+    mPort = port;
   }
 
   @Override
   public void run() {
-    if (DEBUG)
-      Log.v(TAG, "Starting NetworkThread...");
+    LOGV(TAG, "Starting NetworkThread...");
 
     // Loop forever, read new messages from the network, and forward them to
     // the Activity.
     while (true) {
       try {
-        if (DEBUG) {
-          Log.v(TAG, "Waiting for server's next incoming message...");
-        }
-
+        LOGV(TAG, "Waiting for server's next incoming message...");
         String readMsg = mIn.readLine();
-
-        if (DEBUG) {
-          Log.v(TAG, "Message received in NetworkThread: " + readMsg);
-        }
+        LOGV(TAG, "Message received in NetworkThread: " + readMsg);
 
         if (readMsg == null) {
-          // TODO: pause the game, and retry the connection?????????????????
-          Log.e(TAG, "Message was null! THIS SHOULDNT HAPPEN I THINK?!");
-          close();
-          return;
+          if (retryConnection()) {
+            continue;
+          } else {
+            close();
+            return;
+          }
         }
-
-        // Data to pass to the handler
-        Object msg;
-        int arg1;
 
         // Split the message into fields
         String[] fields = readMsg.split(",");
@@ -73,9 +80,9 @@ public class NetworkThread extends Thread {
         if (msgType.equals("IP")) {
           // fields: "IP,puckId,inEdge,args"
           // args: "xEntryPercent;yEntryPercent;angle;pps;radius"
-          arg1 = IP;
+          LOGV(TAG, "IP received from server.");
+
           String[] args = fields[3].split(";");
-          Log.v(TAG, Arrays.toString(fields));
           int puckId = Integer.parseInt(fields[1]);
           int inEdge = Integer.parseInt(fields[2]);
           float xEntryPercent = Float.parseFloat(args[0]);
@@ -103,79 +110,149 @@ public class NetworkThread extends Thread {
             color = Puck.Color.Yellow;
           }
 
-          msg = Utils.toBall(mRegion, puckId, inEdge, xEntryPercent,
-              yEntryPercent, angle, pps, radius, color, user);
+          Object msg = Utils.toBall(mRegion, puckId, inEdge, xEntryPercent, yEntryPercent, angle,
+              pps, radius, color, user);
+          mHandler.obtainMessage(AirHockeyActivity.MESSAGE_READ, IP, -1, msg).sendToTarget();
 
-        } else if (msgType.equals("XOK")) {
-          // "XOK,puckId"
-          if (DEBUG) {
-            Log.v(TAG, "XOK received from server.");
-          }
-          arg1 = XOK;
-          msg = Integer.parseInt(fields[1]);
-          // Do stuff
-        } else if (msgType.equals("XNO")) {
-          // "XNO,puckId"
-          if (DEBUG) {
-            Log.v(TAG, "XNO received from server.");
-          }
-          arg1 = XNO;
-          msg = Integer.parseInt(fields[1]);
         } else if (msgType.equals("POK")) {
           // "POK,puckId"
-          if (DEBUG) {
-            Log.v(TAG, "POK received from server.");
-          }
-          arg1 = POK;
-          msg = Integer.parseInt(fields[1]);
-        } else if (msgType.equals("PNO")) {
-          // "PNO"
-          if (DEBUG) {
-            Log.v(TAG, "PNO received from server.");
-          }
-          arg1 = PNO;
-          msg = null;
-
-        } else {
-          // Shouldn't happen
-          arg1 = -1;
-          msg = null;
+          LOGV(TAG, "POK received from server.");
+          Object msg = Integer.parseInt(fields[1]);
+          mHandler.obtainMessage(AirHockeyActivity.MESSAGE_READ, POK, -1, msg).sendToTarget();
         }
 
-        mHandler.obtainMessage(AirHockeyActivity.MESSAGE_READ, arg1, -1, msg)
-            .sendToTarget();
+        // else if (msgType.equals("XOK")) {
+        // "XOK,puckId"
+        // if (DEBUG) {
+        // Log.v(TAG, "XOK received from server.");
+        // }
+        // arg1 = XOK;
+        // msg = Integer.parseInt(fields[1]);
+        // } else if (msgType.equals("XNO")) {
+        // "XNO,puckId"
+        // if (DEBUG) {
+        // Log.v(TAG, "XNO received from server.");
+        // }
+        // arg1 = XNO;
+        // msg = Integer.parseInt(fields[1]);
+        // } else if (msgType.equals("PNO")) {
+        // "PNO"
+        // if (DEBUG) {
+        // Log.v(TAG, "PNO received from server.");
+        // }
+        // arg1 = PNO;
+        // msg = null;
+        // }
 
       } catch (IOException e) {
-        // TODO: pause the game, and retry the connection!
-        Log.e(TAG, "Client failed to read from server!");
-        close();
-        return;
+        LOGE(TAG, "Client failed to read from server!");
+        LOGV(TAG, "Attempting to re-establish the connection...");
+        if (retryConnection()) {
+          continue;
+        } else {
+          close();
+          return;
+        }
       }
     }
   }
 
+  private boolean retryConnection() {
+    if (mForceClosed) {
+      return false;
+    }
+
+    LOGV(TAG, "Retrying to establish connection...");
+    mHandler.obtainMessage(AirHockeyActivity.STATE_RETRYING).sendToTarget();
+
+    try {
+      // close the old input/output streams
+      if (mOut != null) {
+        mOut.close();
+      }
+      if (mIn != null) {
+        mIn.close();
+      }
+    } catch (IOException ignore) {
+    }
+
+    LOGV(TAG, "Closed old input/output streams.");
+
+    int numAttempts = 0;
+    while (++numAttempts < RETRY_ATTEMPTS) {
+      try {
+        Thread.sleep(RETRY_ATTEMPTS_WAIT_MILLIS);
+      } catch (InterruptedException ex) {
+      }
+
+      try {
+        InetAddress serverAddr = InetAddress.getByName(mHost);
+        mSocket = new Socket(serverAddr, mPort);
+        mOut = new PrintWriter(mSocket.getOutputStream(), true);
+        mIn = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
+
+        // If we've gotten this far, then a connection has been established!
+
+        String joinMsg = new String("J," + mUser);
+        mOut.println(joinMsg);
+        LOGV(TAG, "Sending join request: " + joinMsg);
+
+        if (mOut.checkError()) {
+          LOGE(TAG, "Client failed to write message because PrintWriter threw an" + "IOException!");
+          return false;
+        }
+
+        LOGV(TAG, "Waiting for server's 'join response'.");
+
+        // Blocks until the server responds or the client times out waiting
+        // for the server to respond.
+        String result = null;
+        try {
+          result = mIn.readLine();
+        } catch (IOException ex) {
+          LOGE(TAG, "IOException while waiting for server's join response.");
+          return false;
+        }
+
+        LOGV(TAG, "Client received message from server: " + result);
+
+        if (result != null && !result.equals("DUP") && !result.equals("JNO")) {
+          Message retrySuccess = mHandler.obtainMessage(AirHockeyActivity.RETRY_SUCCESS);
+          mHandler.sendMessageAtFrontOfQueue(retrySuccess);
+          return true;
+        }
+
+      } catch (SocketException ignore) {
+        LOGW(TAG, "SocketException during retry attempt...");
+      } catch (UnknownHostException ignore) {
+        LOGW(TAG, "Could not resolve hostname during retry attmept...");
+      } catch (IOException ignore) {
+        LOGW(TAG, "IOException during retry attempt...");
+      }
+    }
+
+    return false;
+  }
+
   public void write(String writeMsg) {
-    if (DEBUG)
-      Log.v(TAG, "Writing message to server: " + writeMsg);
+    LOGV(TAG, "Writing message to server: " + writeMsg);
     if (mOut != null) {
       mOut.println(writeMsg);
       if (mOut.checkError()) {
-        Log.e(TAG,
-            "Client failed to write message because PrintWriter threw an"
-                + "IOException!");
+        LOGE(TAG, "Client failed to write message because PrintWriter threw an" + "IOException!");
       }
     } else {
-      Log.e(TAG, "Client failed to write message because PrintWriter was null!");
+      LOGE(TAG, "Client failed to write message because PrintWriter was null!");
     }
   }
 
   public void close() {
-    if (DEBUG)
-      Log.v(TAG, "Closing NetworkThread...");
+    LOGV(TAG, "Closing NetworkThread...");
 
-    // TODO: send to front of queue?
+    mForceClosed = true;
     Message closeMsg = mHandler.obtainMessage(AirHockeyActivity.STATE_NONE);
-    mHandler.sendMessage(closeMsg);
+    mHandler.sendMessageAtFrontOfQueue(closeMsg);
+
     if (mSocket != null) {
       try {
         mSocket.close();

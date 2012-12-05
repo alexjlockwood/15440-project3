@@ -14,11 +14,7 @@ import android.text.TextUtils;
  */
 public class Puck extends Shape {
 
-  @SuppressWarnings("unused")
-  private static final String TAG = "15440_Puck";
-  @SuppressWarnings("unused")
-  private static final boolean DEBUG = true;
-
+  // TODO: make these values specific to the user's device size and density
   public static final float MIN_SPEED = 100f;
   public static final float MAX_SPEED = 900f;
 
@@ -35,8 +31,8 @@ public class Puck extends Shape {
   private Color mColor;
   private String mLastUser;
 
-  private Puck(long now, int id, float pps, float x, float y, double angle,
-      float radius, Color color, String lastUser) {
+  private Puck(long now, int id, float pps, float x, float y, double angle, float radius,
+      Color color, String lastUser) {
     mId = id;
     mX = x;
     mY = y;
@@ -156,16 +152,12 @@ public class Puck extends Shape {
     return mLastUser;
   }
 
-
   /**
    * Get the region that this ball is contained in.
    */
   public Shape getRegion() {
     return mRegion;
   }
-
-
-  // TODO: uncomment the method calls below??
 
   /**
    * Set the region that this ball is contained in.
@@ -174,17 +166,13 @@ public class Puck extends Shape {
     if (region.isGoal()) {
       if (mX < region.getLeft()) {
         mX = region.getLeft();
-        // bounceOffLeft();
       } else if (region.getRight() < mX) {
         mX = region.getRight();
-        // bounceOffRight();
       }
       if (mY < region.getTop()) {
         mY = region.getTop();
-        // bounceOffTop();
       } else if (region.getBottom() < mY) {
         mY = region.getBottom();
-        // bounceOffBottom();
       }
     }
     mRegion = region;
@@ -203,50 +191,40 @@ public class Puck extends Shape {
       return;
     }
 
-    // Log.v(TAG, "Updating ball: " + toString());
-
     if (mRegion.isGoal()) {
       // bounce when at walls
-      if (mX <= mRegion.getLeft() + mRadiusPixels) {
-        // at left wall
+      if (mX <= mRegion.getLeft() + mRadiusPixels) { // at left wall
         mX = mRegion.getLeft() + mRadiusPixels;
-        // Log.v(TAG, "bounce off left");
         bounceOffLeft();
-      } else if (mY <= mRegion.getTop() + mRadiusPixels) {
-        // at top wall
+      } else if (mY <= mRegion.getTop() + mRadiusPixels) { // at top wall
         mY = mRegion.getTop() + mRadiusPixels;
-        // Log.v(TAG, "bounce off top");
         bounceOffTop();
-      } else if (mX >= mRegion.getRight() - mRadiusPixels) {
-        // at right wall
+      } else if (mX >= mRegion.getRight() - mRadiusPixels) { // at right wall
         mX = mRegion.getRight() - mRadiusPixels;
-        // Log.v(TAG, "bounce off right");
         bounceOffRight();
-      } else if (mY >= mRegion.getBottom() - mRadiusPixels) {
-        // at bottom wall
+      } else if (mY >= mRegion.getBottom() - mRadiusPixels) { // at bottom wall
         mY = mRegion.getBottom() - mRadiusPixels;
         // Log.v(TAG, "bounce off bottom");
         bounceOffBottom();
       }
     } else {
       // fall out of the screen... don't bounce at walls
-      if (mX <= -mRadiusPixels) {
-        // at left wall
+      if (mX <= -mRadiusPixels) { // at left wall
         mHasExited = PuckRegion.LEFT;
       } else if (mY <= -mRadiusPixels) {
         // at top wall
         mHasExited = PuckRegion.TOP;
-      } else if (mX >= mRegion.getRight() + AirHockeyView.BORDER_WIDTH
-          + mRadiusPixels) {
+      } else if (mX >= mRegion.getRight() + AirHockeyView.BORDER_WIDTH + mRadiusPixels) {
         // at right wall
         mHasExited = PuckRegion.RIGHT;
-      } else if (mY >= mRegion.getBottom() + AirHockeyView.BORDER_WIDTH
-          + mRadiusPixels) {
+      } else if (mY >= mRegion.getBottom() + AirHockeyView.BORDER_WIDTH + mRadiusPixels) {
         // at bottom wall
         mHasExited = PuckRegion.BOTTOM;
       }
     }
 
+    // TODO: make this smoother for large screens with low-ish densities
+    // (i.e. the Motorola Xoom!)
     float delta = (now - mLastUpdate) * mPixelsPerSecond;
     delta = delta / 1000f;
 
@@ -255,6 +233,8 @@ public class Puck extends Shape {
 
     double friction;
     if (mRegion.isGoal()) {
+      // Balls in the goal region slow down faster... this reduces the
+      // visually apparent "spaz" effect when a ball enters the goal region :P
       friction = 0.98;
     } else {
       friction = 0.995;
@@ -319,17 +299,14 @@ public class Puck extends Shape {
    * Given that ball a and b have collided, adjust their angles to reflect their
    * state after the collision.
    *
-   * This method works based on the conservation of energy and momentum in an
-   * elastic collision. Because the balls have equal mass and speed, it ends up
-   * being that they simply swap velocities along the axis of the collision,
-   * keeping the velocities tangent to the collision constant.
-   *
    * @param b1
    *          The first ball in a collision
    * @param b2
    *          The second ball in a collision
    */
   public static void adjustForCollision(Puck b1, Puck b2) {
+    // TODO: account for balls with different velocities... this method
+    // technically doesn't follow the laws of conservation of energy.
     double collA = Math.atan2(b2.mY - b1.mY, b2.mX - b1.mX);
     double collB = Math.atan2(b1.mY - b2.mY, b1.mX - b2.mX);
     double ax = Math.cos(b1.mDirection - collA);
@@ -345,9 +322,9 @@ public class Puck extends Shape {
   @Override
   public String toString() {
     return String.format(Locale.US,
-        "Ball(id=%d, x=%f, y=%f, angle=%f, speed=%f, color=%s, exitEdge=%s)",
-        mId, mX, mY, Math.toDegrees(mDirection), (float) mPixelsPerSecond,
-        Utils.colorToStr(mColor), Utils.exitEdgeToStr(mHasExited));
+        "Ball(id=%d, x=%f, y=%f, angle=%f, speed=%f, color=%s, exitEdge=%s)", mId, mX, mY,
+        Math.toDegrees(mDirection), (float) mPixelsPerSecond, Utils.colorToStr(mColor),
+        Utils.exitEdgeToStr(mHasExited));
   }
 
   /**
@@ -356,7 +333,6 @@ public class Puck extends Shape {
    */
   public static class Builder {
     private long mNow = -1;
-    // TODO: figure out what to do with the ids!
     private int mId = -1;
     private float mX = -1;
     private float mY = -1;
@@ -373,12 +349,12 @@ public class Puck extends Shape {
       if (mId < 0) {
         throw new IllegalStateException("id must be set");
       }
-      if (mX < 0) {
-        // throw new IllegalStateException("X must be set");
-      }
-      if (mY < 0) {
-        // throw new IllegalStateException("Y must be stet");
-      }
+      //if (mX < 0) {
+      // throw new IllegalStateException("X must be set");
+      //}
+      //if (mY < 0) {
+      // throw new IllegalStateException("Y must be stet");
+      //}
       if (mAngle > 2 * Math.PI) {
         throw new IllegalStateException("angle must be less that 2Pi");
       }
@@ -388,8 +364,8 @@ public class Puck extends Shape {
       if (TextUtils.isEmpty(mLastUser)) {
         throw new IllegalStateException("puck must belong to a user!");
       }
-      return new Puck(mNow, mId, mPixelsPerSecond, mX, mY, mAngle,
-          mRadiusPixels, mPuckColor, mLastUser);
+      return new Puck(mNow, mId, mPixelsPerSecond, mX, mY, mAngle, mRadiusPixels, mPuckColor,
+          mLastUser);
     }
 
     public Builder setId(int id) {
