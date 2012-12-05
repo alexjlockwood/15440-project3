@@ -215,9 +215,11 @@ public class Puck extends Shape {
         // at top wall
         mHasExited = PuckRegion.TOP;
       } else if (mX >= mRegion.getRight() + AirHockeyView.BORDER_WIDTH + mRadiusPixels) {
+        // TODO: figure out if adding the border width here is necessary?
         // at right wall
         mHasExited = PuckRegion.RIGHT;
       } else if (mY >= mRegion.getBottom() + AirHockeyView.BORDER_WIDTH + mRadiusPixels) {
+        // TODO: figure out if adding the border width here is necessary?
         // at bottom wall
         mHasExited = PuckRegion.BOTTOM;
       }
