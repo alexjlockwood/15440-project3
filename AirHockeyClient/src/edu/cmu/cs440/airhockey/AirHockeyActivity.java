@@ -179,11 +179,14 @@ public class AirHockeyActivity extends FragmentActivity implements
    * individual write message.
    */
   private ExecutorService mExecutor = Executors.newSingleThreadExecutor();
+
   private class WriteRunnable implements Runnable {
     private String mMsg;
+
     public WriteRunnable(String msg) {
       mMsg = msg;
     }
+
     @Override
     public void run() {
       mNetworkThread.write(mMsg);

@@ -123,7 +123,6 @@ public class LoginTask extends AsyncTask<String, String, String> {
       return result;
     }
 
-
     // Publish the updated progress...
     publishProgress(new String[] { "Setting up game environment..." });
 

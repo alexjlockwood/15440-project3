@@ -26,7 +26,7 @@ public class PuckRegion extends Shape {
 
   /**
    * Creates a BallRegion with the given bounds and balls.
-   *
+   * 
    * @param left
    *          The minimum x component
    * @param right
@@ -38,8 +38,8 @@ public class PuckRegion extends Shape {
    * @param balls
    *          The balls of the region
    */
-  public PuckRegion(float left, float right, float top, float bottom,
-      ArrayList<Puck> pucks, boolean isGoal) {
+  public PuckRegion(float left, float right, float top, float bottom, ArrayList<Puck> pucks,
+      boolean isGoal) {
     mLeft = left;
     mRight = right;
     mTop = top;
@@ -111,7 +111,7 @@ public class PuckRegion extends Shape {
 
   /**
    * Update the balls in this region. Called by the {@link PuckEngine}.
-   *
+   * 
    * @param now
    *          in millis
    * @return A new region if a split has occurred because the animating line

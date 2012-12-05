@@ -134,9 +134,9 @@ public class Utils {
   }
 
   public static void LOGV(final String tag, String message) {
-    //if (Log.isLoggable(tag, Log.VERBOSE)) {
-      Log.v(tag, message);
-    //}
+    // if (Log.isLoggable(tag, Log.VERBOSE)) {
+    Log.v(tag, message);
+    // }
   }
 
   public static void LOGI(final String tag, String message) {

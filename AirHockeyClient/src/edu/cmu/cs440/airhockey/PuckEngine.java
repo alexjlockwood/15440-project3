@@ -6,7 +6,7 @@ import java.util.Iterator;
 /**
  * Keeps track of the current state of pucks bouncing around within a a set of
  * regions.
- *
+ * 
  * Note: 'now' is the elapsed time in milliseconds since some consistent point
  * in time. As long as the reference point stays consistent, the engine will be
  * happy, though typically this is
@@ -51,7 +51,7 @@ public class PuckEngine {
   /**
    * Set the callback that will be notified of ball events. Callback events are
    * received to the {@link AirHockeyView}.
-   *
+   * 
    * Called by {@link AirHockeyView}.
    */
   public void setCallBack(BallEventCallBack callBack) {
