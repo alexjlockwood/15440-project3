@@ -8,7 +8,7 @@ import android.text.TextUtils;
  * A ball has a current location, a trajectory angle, a speed in pixels per
  * second, and a last update time. It is capable of updating itself based on its
  * trajectory and speed.
- * 
+ *
  * It also knows its boundaries, and will 'bounce' off them when it reaches
  * them.
  */
@@ -208,7 +208,8 @@ public class Puck extends Shape {
       }
     } else {
       // fall out of the screen... don't bounce at walls
-      if (mX <= -mRadiusPixels) { // at left wall
+      if (mX <= -mRadiusPixels) {
+        // at left wall
         mHasExited = PuckRegion.LEFT;
       } else if (mY <= -mRadiusPixels) {
         // at top wall
@@ -297,7 +298,7 @@ public class Puck extends Shape {
   /**
    * Given that ball a and b have collided, adjust their angles to reflect their
    * state after the collision.
-   * 
+   *
    * @param b1
    *          The first ball in a collision
    * @param b2
